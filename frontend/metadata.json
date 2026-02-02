@@ -1,0 +1,5 @@
+{
+  "name": "Prompt-Shield",
+  "description": "An enterprise-grade AI security gateway that detects and masks sensitive data before it reaches LLMs, ensuring zero-exposure privacy.",
+  "requestFramePermissions": []
+}
