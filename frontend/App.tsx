@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Shield, 
@@ -205,7 +204,7 @@ const App: React.FC = () => {
   const hasUnmaskedPII = !isShieldActive && realityData && realityData.entities.length > 0;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col font-sans selection:bg-emerald-500/30 overflow-hidden text-slate-900 dark:text-slate-200 transition-colors duration-300">
+    <div className="h-screen bg-white dark:bg-slate-950 flex flex-col font-sans selection:bg-emerald-500/30 overflow-hidden text-slate-900 dark:text-slate-200 transition-colors duration-300">
       {/* HEADER */}
       <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center justify-between px-6 shrink-0 transition-colors duration-300 relative z-20">
         <div className="flex items-center space-x-6">
@@ -244,7 +243,7 @@ const App: React.FC = () => {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 flex overflow-hidden">
-        <section className="flex-1 flex flex-col bg-white dark:bg-slate-950 relative overflow-hidden border-r border-slate-200 dark:border-slate-800 transition-colors duration-300">
+        <section className="flex-1 flex flex-col bg-white dark:bg-slate-950 relative overflow-hidden border-r border-slate-200 dark:border-slate-800 transition-colors duration-300 h-full">
           <div className="h-11 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between px-6 shrink-0 transition-colors duration-300">
             <div className="flex items-center space-x-2">
               <Shield size={12} className={isShieldActive ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"} />
@@ -281,24 +280,13 @@ const App: React.FC = () => {
                     {msg.role === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-emerald-600 dark:text-emerald-400" />}
                   </div>
                   <div className="flex flex-col space-y-3">
-                    {/* Message Bubble */}
-                    <div className={`rounded-3xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-colors duration-300 ${
-                      msg.role === 'user' 
-                      ? (isShieldActive 
-                          ? 'bg-emerald-600/10 border border-emerald-200 dark:border-emerald-600/20 text-emerald-900 dark:text-emerald-50' 
-                          : 'bg-red-600/10 border border-red-200 dark:border-red-600/20 text-red-900 dark:text-red-50')
-                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
-                    }`}>
-                      {msg.rehydratedText}
-                    </div>
-                    
-                    {/* Attachment Previews in Chat History */}
+                    {/* Attachment Previews in Chat History - NOW ABOVE BUBBLE */}
                     {msg.attachments && msg.attachments.length > 0 && (
                       <div className={`flex flex-wrap gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.attachments.map(att => (
                           <div key={att.id} className="flex flex-col animate-in zoom-in-95 duration-200">
                             {att.mimeType.startsWith('image/') ? (
-                              <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-lg group relative">
+                              <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-lg group relative bg-white dark:bg-slate-900">
                                 <img src={`data:${att.mimeType};base64,${att.data}`} className="max-w-[200px] max-h-[150px] object-cover hover:scale-105 transition-transform cursor-pointer" alt="attachment preview" />
                                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] p-1 truncate backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
                                   {att.name}
@@ -319,6 +307,17 @@ const App: React.FC = () => {
                         ))}
                       </div>
                     )}
+
+                    {/* Message Bubble */}
+                    <div className={`rounded-3xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-colors duration-300 ${
+                      msg.role === 'user' 
+                      ? (isShieldActive 
+                          ? 'bg-emerald-600/10 border border-emerald-200 dark:border-emerald-600/20 text-emerald-900 dark:text-emerald-50' 
+                          : 'bg-red-600/10 border border-red-200 dark:border-red-600/20 text-red-900 dark:text-red-50')
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
+                    }`}>
+                      {msg.rehydratedText}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -393,7 +392,7 @@ const App: React.FC = () => {
         </section>
 
         {showModelReality && (
-          <section className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 animate-in slide-in-from-right duration-500 border-l border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300">
+          <section className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 animate-in slide-in-from-right duration-500 border-l border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300 h-full">
             <div className="h-11 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center justify-between px-6 shrink-0 transition-colors duration-300 relative">
               <div className="flex items-center space-x-2">
                 <Database size={12} className="text-cyan-600 dark:text-cyan-400" />
