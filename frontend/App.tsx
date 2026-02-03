@@ -1,17 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Shield, 
-  Send, 
-  Database, 
-  ArrowRight, 
-  ShieldCheck, 
-  Trash2, 
-  Cpu, 
-  Eye, 
-  EyeOff, 
-  AlertTriangle, 
-  User, 
-  Bot, 
+import {
+  Shield,
+  Send,
+  Database,
+  ArrowRight,
+  ShieldCheck,
+  Trash2,
+  Cpu,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  User,
+  Bot,
   Loader2,
   Sun,
   Moon,
@@ -22,8 +22,10 @@ import {
   Unlock,
   File
 } from 'lucide-react';
-import { inspector } from './services/inspector';
-import { vault } from './services/vault';
+
+import { secureChatBridge } from './services/bridge';
+// import { inspector } from './services/inspector';
+// import { vault } from './services/vault';
 import { sendToAI } from './services/gemini';
 import { ProcessingStep, InspectionResult, ChatMessage, ChatAttachment } from './types';
 import { StepIndicator } from './components/StepIndicator';
@@ -104,7 +106,7 @@ const App: React.FC = () => {
     setAttachments(prev => prev.filter(a => a.id !== id));
   };
 
-  const handleSend = async () => {
+const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isProcessing) return;
 
     const userRawText = input;
@@ -114,73 +116,60 @@ const App: React.FC = () => {
     setIsProcessing(true);
     setSteps(INITIAL_STEPS.map(s => ({ ...s, status: 'pending' })));
     setRealityData(null);
-    
+
     const userMsgId = Date.now().toString();
-    
+
     try {
       updateStep('inspect', 'active');
       await new Promise(r => setTimeout(r, 600));
-      const inspectionResult = inspector.inspect(userRawText);
+      const inspectionResult = { maskedText: userRawText, entities: [] };
       updateStep('inspect', 'completed');
 
-      const textToSend = isShieldActive ? inspectionResult.maskedText : userRawText;
-
-      if (isShieldActive) {
-        updateStep('mask', 'active');
-        await new Promise(r => setTimeout(r, 300));
-        updateStep('mask', 'completed');
-
-        updateStep('vault', 'active');
-        await new Promise(r => setTimeout(r, 300));
-        vault.initialize(inspectionResult.entities);
-        updateStep('vault', 'completed');
-      } else {
-        updateStep('mask', 'completed');
-        updateStep('vault', 'completed');
-        vault.clear(); 
-      }
-
+      // 1. USER MESSAGE (Initially Raw)
       const userMessage: ChatMessage = {
         id: userMsgId,
         role: 'user',
         rawText: userRawText,
-        maskedText: textToSend,
+        maskedText: userRawText, 
         rehydratedText: userRawText,
         entities: inspectionResult.entities,
         timestamp: Date.now(),
         attachments: currentAttachments
       };
       setMessages(prev => [...prev, userMessage]);
-      setRealityData({ maskedUser: textToSend, maskedAI: '', entities: inspectionResult.entities });
+      setRealityData({ maskedUser: userRawText, maskedAI: '', entities: [] });
 
+      updateStep('mask', 'completed');
+      updateStep('vault', 'completed');
       updateStep('transmit', 'active');
-      const aiResponse = await sendToAI(textToSend, currentAttachments);
+
+      // 2. CALL BRIDGE (Now returns masked_reply too)
+      const { reply, masked_reply, masked_prompt, entities } = await secureChatBridge(userRawText);
+
       updateStep('transmit', 'completed');
-      
-      setRealityData(prev => prev ? { ...prev, maskedAI: aiResponse } : null);
 
-      let finalResult = aiResponse;
-      if (isShieldActive) {
-        updateStep('rehydrate', 'active');
-        await new Promise(r => setTimeout(r, 500));
-        finalResult = vault.rehydrate(aiResponse);
-        updateStep('rehydrate', 'completed');
+      // 3. UPDATE USER MESSAGE (Right Side = Masked Prompt)
+      setMessages(prev => prev.map(msg => 
+        msg.id === userMsgId ? { ...msg, maskedText: masked_prompt } : msg
+      ));
 
-        updateStep('purge', 'active');
-        await new Promise(r => setTimeout(r, 300));
-        vault.clear();
-        updateStep('purge', 'completed');
-      } else {
-        updateStep('rehydrate', 'completed');
-        updateStep('purge', 'completed');
-      }
+      // 4. UPDATE TABLE
+      setRealityData({
+        maskedUser: masked_prompt,
+        maskedAI: masked_reply, // Show raw AI response in table context if needed
+        entities: entities 
+      });
 
+      updateStep('rehydrate', 'completed');
+      updateStep('purge', 'completed');
+
+      // 5. ASSISTANT MESSAGE (The Critical Fix)
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         rawText: '',
-        maskedText: aiResponse,
-        rehydratedText: finalResult,
+        maskedText: masked_reply,   // RIGHT PANEL: Shows <NAME_1>, <ORG_1>
+        rehydratedText: reply,      // LEFT PANEL: Shows "Riya Sharma", "Amazon"
         entities: [],
         timestamp: Date.now()
       };
@@ -193,12 +182,11 @@ const App: React.FC = () => {
       setIsProcessing(false);
     }
   };
-
   const clearChat = () => {
     setMessages([]);
     setRealityData(null);
     setSteps(INITIAL_STEPS);
-    vault.clear();
+    // vault.clear();
   };
 
   const hasUnmaskedPII = !isShieldActive && realityData && realityData.entities.length > 0;
@@ -218,16 +206,15 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <button 
-             onClick={() => setIsShieldActive(!isShieldActive)}
-             className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border transition-all duration-500 font-bold text-[10px] uppercase tracking-widest ${
-               isShieldActive 
-               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
-               : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
-             }`}
-           >
-             {isShieldActive ? <ShieldCheck size={14} /> : <AlertTriangle size={14} className="animate-pulse" />}
-             <span>{isShieldActive ? 'Shield Active' : 'Shield Off'}</span>
+          <button
+            onClick={() => setIsShieldActive(!isShieldActive)}
+            className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border transition-all duration-500 font-bold text-[10px] uppercase tracking-widest ${isShieldActive
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+              : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+              }`}
+          >
+            {isShieldActive ? <ShieldCheck size={14} /> : <AlertTriangle size={14} className="animate-pulse" />}
+            <span>{isShieldActive ? 'Shield Active' : 'Shield Off'}</span>
           </button>
         </div>
 
@@ -265,14 +252,14 @@ const App: React.FC = () => {
                     {isShieldActive ? 'Privacy-First AI Chat' : 'Unprotected AI Chat'}
                   </h2>
                   <p className="text-xs font-medium max-w-xs leading-relaxed text-slate-500">
-                    {isShieldActive 
-                      ? "Type naturally. Our shield detects and masks PII before it ever touches the model." 
+                    {isShieldActive
+                      ? "Type naturally. Our shield detects and masks PII before it ever touches the model."
                       : "Privacy Shield is currently disabled. All sensitive information will be transmitted as plain text."}
                   </p>
                 </div>
               </div>
             )}
-            
+
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                 <div className={`max-w-[85%] flex space-x-4 ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'}`}>
@@ -309,13 +296,12 @@ const App: React.FC = () => {
                     )}
 
                     {/* Message Bubble */}
-                    <div className={`rounded-3xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-colors duration-300 ${
-                      msg.role === 'user' 
-                      ? (isShieldActive 
-                          ? 'bg-emerald-600/10 border border-emerald-200 dark:border-emerald-600/20 text-emerald-900 dark:text-emerald-50' 
-                          : 'bg-red-600/10 border border-red-200 dark:border-red-600/20 text-red-900 dark:text-red-50')
+                    <div className={`rounded-3xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-colors duration-300 ${msg.role === 'user'
+                      ? (isShieldActive
+                        ? 'bg-emerald-600/10 border border-emerald-200 dark:border-emerald-600/20 text-emerald-900 dark:text-emerald-50'
+                        : 'bg-red-600/10 border border-red-200 dark:border-red-600/20 text-red-900 dark:text-red-50')
                       : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
-                    }`}>
+                      }`}>
                       {msg.rehydratedText}
                     </div>
                   </div>
@@ -359,7 +345,7 @@ const App: React.FC = () => {
                 ))}
               </div>
             )}
-            
+
             <div className="relative group max-w-3xl mx-auto flex items-center space-x-3">
               <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/*,.pdf,.txt,.doc,.docx" />
               <button onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-emerald-600 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full transition-all shadow-sm">
@@ -435,11 +421,10 @@ const App: React.FC = () => {
                         {msg.role === 'user' ? <User size={12} /> : <Bot size={12} />}
                       </div>
                       <div className="flex flex-col space-y-2">
-                        <div className={`rounded-2xl px-3 py-2 text-[11px] font-mono leading-relaxed break-words shadow-sm transition-colors duration-300 ${
-                          msg.role === 'user' 
+                        <div className={`rounded-2xl px-3 py-2 text-[11px] font-mono leading-relaxed break-words shadow-sm transition-colors duration-300 ${msg.role === 'user'
                           ? (isShieldActive ? 'bg-white dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-900/40 text-cyan-700 dark:text-cyan-400' : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-400')
                           : 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-amber-700 dark:text-amber-400/90'
-                        }`}>
+                          }`}>
                           {msg.maskedText || (msg.attachments && msg.attachments.length > 0 ? "[Multimodal Payload]" : "")}
                         </div>
                       </div>
@@ -450,28 +435,28 @@ const App: React.FC = () => {
 
               {realityData && realityData.entities.length > 0 && (
                 <div className="mt-8 space-y-2 animate-in slide-in-from-bottom-4 duration-500">
-                   <div className="flex items-center justify-between ml-1">
-                     <span className={`text-[10px] font-bold uppercase tracking-widest ${isShieldActive ? 'text-slate-500' : 'text-red-500'}`}>
-                       {isShieldActive ? 'Active Buffers (Masked)' : 'Exposed Entities (Leaking)'}
-                     </span>
-                     {isShieldActive ? <Lock size={12} className="text-emerald-500" /> : <Unlock size={12} className="text-red-500 animate-bounce" />}
-                   </div>
-                   <div className={`divide-y transition-colors duration-500 dark:bg-slate-950 border rounded-3xl overflow-hidden shadow-sm ${isShieldActive ? 'divide-slate-200 dark:divide-slate-800 bg-white border-slate-200 dark:border-slate-800' : 'divide-red-200 dark:divide-red-900 bg-red-50 border-red-200 dark:border-red-900'}`}>
-                     {realityData.entities.map(ent => (
-                       <div key={ent.id} className="p-3 flex items-center justify-between text-[10px]">
-                         <div className="flex items-center space-x-2">
-                           <span className={`px-2 py-0.5 rounded-lg border font-bold text-[8px] uppercase ${isShieldActive ? 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-500 border-slate-200 dark:border-slate-800' : 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-500 border-red-200 dark:border-red-800'}`}>
-                             {ent.type}
-                           </span>
-                           <span className={`font-mono ${isShieldActive ? 'text-cyan-700 dark:text-cyan-400' : 'line-through text-slate-400'}`}>{ent.placeholder}</span>
-                         </div>
-                         <ArrowRight size={10} className={isShieldActive ? "text-slate-300 dark:text-slate-700" : "text-red-300"} />
-                         <span className={`font-mono px-2 py-0.5 rounded-lg truncate max-w-[120px] ${isShieldActive ? 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-500' : 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 font-bold border border-red-200 dark:border-red-900 shadow-sm'}`}>
-                           {ent.value}
-                         </span>
-                       </div>
-                     ))}
-                   </div>
+                  <div className="flex items-center justify-between ml-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${isShieldActive ? 'text-slate-500' : 'text-red-500'}`}>
+                      {isShieldActive ? 'Active Buffers (Masked)' : 'Exposed Entities (Leaking)'}
+                    </span>
+                    {isShieldActive ? <Lock size={12} className="text-emerald-500" /> : <Unlock size={12} className="text-red-500 animate-bounce" />}
+                  </div>
+                  <div className={`divide-y transition-colors duration-500 dark:bg-slate-950 border rounded-3xl overflow-hidden shadow-sm ${isShieldActive ? 'divide-slate-200 dark:divide-slate-800 bg-white border-slate-200 dark:border-slate-800' : 'divide-red-200 dark:divide-red-900 bg-red-50 border-red-200 dark:border-red-900'}`}>
+                    {realityData.entities.map(ent => (
+                      <div key={ent.id} className="p-3 flex items-center justify-between text-[10px]">
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-0.5 rounded-lg border font-bold text-[8px] uppercase ${isShieldActive ? 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-500 border-slate-200 dark:border-slate-800' : 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-500 border-red-200 dark:border-red-800'}`}>
+                            {ent.type}
+                          </span>
+                          <span className={`font-mono ${isShieldActive ? 'text-cyan-700 dark:text-cyan-400' : 'line-through text-slate-400'}`}>{ent.placeholder}</span>
+                        </div>
+                        <ArrowRight size={10} className={isShieldActive ? "text-slate-300 dark:text-slate-700" : "text-red-300"} />
+                        <span className={`font-mono px-2 py-0.5 rounded-lg truncate max-w-[120px] ${isShieldActive ? 'bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-500' : 'bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 font-bold border border-red-200 dark:border-red-900 shadow-sm'}`}>
+                          {ent.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
