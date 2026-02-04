@@ -106,7 +106,7 @@ const App: React.FC = () => {
     setAttachments(prev => prev.filter(a => a.id !== id));
   };
 
-const handleSend = async () => {
+  const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isProcessing) return;
 
     const userRawText = input;
@@ -130,7 +130,7 @@ const handleSend = async () => {
         id: userMsgId,
         role: 'user',
         rawText: userRawText,
-        maskedText: userRawText, 
+        maskedText: userRawText,
         rehydratedText: userRawText,
         entities: inspectionResult.entities,
         timestamp: Date.now(),
@@ -144,12 +144,14 @@ const handleSend = async () => {
       updateStep('transmit', 'active');
 
       // 2. CALL BRIDGE (Now returns masked_reply too)
-      const { reply, masked_reply, masked_prompt, entities } = await secureChatBridge(userRawText);
+      // const { reply, masked_reply, masked_prompt, entities } = await secureChatBridge(userRawText);
+      const { reply, masked_reply, masked_prompt, entities } =
+        await secureChatBridge(userRawText, isShieldActive);
 
       updateStep('transmit', 'completed');
 
       // 3. UPDATE USER MESSAGE (Right Side = Masked Prompt)
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === userMsgId ? { ...msg, maskedText: masked_prompt } : msg
       ));
 
@@ -157,7 +159,7 @@ const handleSend = async () => {
       setRealityData({
         maskedUser: masked_prompt,
         maskedAI: masked_reply, // Show raw AI response in table context if needed
-        entities: entities 
+        entities: entities
       });
 
       updateStep('rehydrate', 'completed');
