@@ -410,7 +410,7 @@ const App: React.FC = () => {
               <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-600 uppercase mb-4 tracking-widest flex items-center justify-between">
                   <span>Processing Pipeline</span>
-                  <span className="text-emerald-500/50">Shield v2.4</span>
+                  <span className="text-emerald-500/50">Shield v1.0</span>
                 </p>
                 <StepIndicator steps={steps} />
               </div>
