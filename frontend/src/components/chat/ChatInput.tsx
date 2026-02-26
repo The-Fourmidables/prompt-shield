@@ -155,7 +155,11 @@ export default function ChatInput({
             maxHeight: "200px",
             resize: "none",
             borderRadius: "12px",
-            border: `1px solid ${colors.border}`,
+border: `1px solid ${
+  shieldActive
+    ? colors.accent
+    : colors.danger
+}`,
             backgroundColor: colors.surface,
             color: colors.textPrimary,
             padding: "12px 16px",

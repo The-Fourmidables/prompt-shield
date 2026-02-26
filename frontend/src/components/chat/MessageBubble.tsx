@@ -45,7 +45,7 @@ export default function MessageBubble({
     const bubbleBackground = isUser
         ? shieldActive
             ? theme === "dark"
-                ? `${colors.accent}18`
+                ? colors.textPrimary
                 : `${colors.accent}22`
             : theme === "dark"
                 ? `${colors.danger}22`
@@ -107,10 +107,12 @@ export default function MessageBubble({
                 style={{
                     backgroundColor: bubbleBackground,
                     color: isUser
-    ? shieldActive
-        ? colors.textPrimary
-        : colors.danger
-    : colors.textPrimary,
+                        ? shieldActive
+                            ? theme === "dark"
+                                ?  colors.accentText   
+                                : colors.textPrimary
+                            : colors.danger
+                        : colors.textPrimary,
                     padding: "16px 20px",
                     borderRadius: "18px",
                     border: `1px solid ${bubbleBorder}`,

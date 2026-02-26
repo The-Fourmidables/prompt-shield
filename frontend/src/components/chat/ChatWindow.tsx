@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { getComputedTheme } from "../../theme/theme";
 import MessageBubble from "./MessageBubble";
 import type { ChatTurn } from "../../types";
@@ -17,8 +18,17 @@ export default function ChatWindow({
 }) {
   const colors = getComputedTheme(theme, shieldActive);
   void rightPanelStack;
-
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const isInitialState = turns.length === 0;
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [turns]);
 
   return (
     <div
@@ -40,10 +50,10 @@ export default function ChatWindow({
           border: `1px solid ${colors.border}`,
           borderRadius: "20px",
           boxShadow: `
-            0 0 0 1px rgba(255,255,255,0.02),
-            0 20px 60px rgba(0,0,0,0.6),
-            inset 0 0 40px rgba(255,255,255,0.02)
-          `,
+  0 0 0 1px ${colors.border},
+  0 20px 60px ${colors.glow},
+  inset 0 0 40px ${colors.glow}
+`,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden", // locks card
@@ -51,6 +61,7 @@ export default function ChatWindow({
       >
         {/* Scrollable message area */}
         <div
+          ref={scrollRef}
           style={{
             flex: 1,
             overflowY: "auto",
@@ -61,9 +72,72 @@ export default function ChatWindow({
           }}
         >
           {isInitialState ? (
-            <>
-              {/* KEEP YOUR EXISTING INITIAL STATE CONTENT HERE */}
-            </>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                textAlign: "center",
+                gap: "24px",
+                opacity: 0.95,
+              }}
+            >
+              {/* Shield Icon Container */}
+              <div
+                style={{
+                  width: "70px",
+                  height: "70px",
+                  borderRadius: "18px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: `1px solid ${colors.border}`,
+                  background: colors.surfaceAlt,
+                  boxShadow: `
+          0 0 40px ${colors.glow},
+          inset 0 0 20px rgba(255,255,255,0.03)
+        `,
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="28"
+                  height="28"
+                  stroke={colors.accent}
+                  strokeWidth="1.8"
+                  fill="none"
+                >
+                  <path d="M12 2l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4z" />
+                </svg>
+              </div>
+
+              {/* Title */}
+              <div
+                style={{
+                  fontSize: "22px",
+                  fontWeight: 700,
+                  letterSpacing: "1px",
+                  color: colors.textPrimary,
+                }}
+              >
+                PRIVACY-FIRST AI CHAT
+              </div>
+
+              {/* Subtitle */}
+              <div
+                style={{
+                  maxWidth: "520px",
+                  fontSize: "14px",
+                  color: colors.textSecondary,
+                  lineHeight: 1.6,
+                }}
+              >
+                Type naturally. Our shield detects and masks sensitive data
+                before it ever reaches the model.
+              </div>
+            </div>
           ) : (
             turns.map((turn) => (
               <div
