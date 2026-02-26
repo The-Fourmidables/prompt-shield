@@ -10,12 +10,23 @@ import Main from "./pages/Main";
 
 function AppWrapper() {
   const navigate = useNavigate();
-  const [theme, setTheme] = React.useState<"dark" | "light">("dark");
+
+  // 🔐 Load theme from localStorage (or default to dark)
+  const [theme, setTheme] = React.useState<"dark" | "light">(() => {
+    const saved = localStorage.getItem("ps_theme");
+    return saved === "light" ? "light" : "dark";
+  });
+
+  // 💾 Persist theme whenever it changes
+  useEffect(() => {
+    localStorage.setItem("ps_theme", theme);
+  }, [theme]);
 
   // 🔥 Force landing on refresh
   useEffect(() => {
     navigate("/");
   }, []);
+
 
   return (
     <Routes>

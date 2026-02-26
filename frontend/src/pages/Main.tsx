@@ -22,7 +22,10 @@ export default function Main({
   const [pipelineStage, setPipelineStage] =
     useState<string>("IDLE");
 
-  const [shieldActive, setShieldActive] = useState(true);
+  const [shieldActive, setShieldActive] = useState<boolean>(() => {
+    const saved = localStorage.getItem("ps_shield");
+    return saved === "false" ? false : true;
+  });
   const [inspectionMode, setInspectionMode] =
     useState(false);
 
@@ -49,6 +52,10 @@ export default function Main({
       setPipelineStage("IDLE");
     }
   }, [turns]);
+  // 🔐 Persist shield state
+  useEffect(() => {
+    localStorage.setItem("ps_shield", String(shieldActive));
+  }, [shieldActive]);
 
   const handleClearChat = () => {
     setTurns([]);

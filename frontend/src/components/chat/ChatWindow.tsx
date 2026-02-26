@@ -130,12 +130,16 @@ export default function ChatWindow({
                 style={{
                   maxWidth: "520px",
                   fontSize: "14px",
-                  color: colors.textSecondary,
+                  color: shieldActive
+                    ? colors.textSecondary
+                    : colors.danger,
                   lineHeight: 1.6,
+                  transition: "color 0.25s ease",
                 }}
               >
-                Type naturally. Our shield detects and masks sensitive data
-                before it ever reaches the model.
+                {shieldActive
+                  ? "Type naturally. Our shield detects and masks sensitive data before it ever reaches the model."
+                  : "Shield is currently OFF. Your prompts will be sent without masking or privacy protection."}
               </div>
             </div>
           ) : (

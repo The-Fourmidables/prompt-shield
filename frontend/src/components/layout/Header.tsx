@@ -1,4 +1,5 @@
 import { theme as themeConfig } from "../../theme/theme";
+import { Shield } from "lucide-react";
 
 export default function Header({
   theme,
@@ -10,6 +11,9 @@ export default function Header({
   setShieldActive: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const colors = themeConfig[theme];
+
+  const activeColor = shieldActive ? colors.accent : colors.danger!;
+  const glowColor = shieldActive ? colors.glow : `${colors.danger}40`;
 
   return (
     <div
@@ -23,7 +27,32 @@ export default function Header({
         borderBottom: `1px solid ${colors.border}`,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+      {/* LEFT SIDE */}
+      <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
+        
+        {/* Shield Block */}
+        <div
+          style={{
+            width: "42px",
+            height: "42px",
+            borderRadius: "12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.surfaceAlt,
+            border: `1px solid ${activeColor}`,
+            boxShadow: `0 0 18px ${glowColor}`,
+            transition: "all 0.3s ease",
+          }}
+        >
+          <Shield
+            size={20}
+            strokeWidth={2.4}
+            color={activeColor}
+          />
+        </div>
+
+        {/* Title */}
         <div
           style={{
             fontSize: "20px",
@@ -35,6 +64,7 @@ export default function Header({
           PROMPT-SHIELD
         </div>
 
+        {/* Toggle */}
         <div
           onClick={() => setShieldActive((prev) => !prev)}
           style={{
@@ -49,18 +79,26 @@ export default function Header({
               ? colors.surfaceAlt
               : `${colors.danger}22`,
 
-            color: shieldActive
-              ? colors.accent
-              : colors.danger,
-
-            border: `1px solid ${shieldActive ? colors.border : colors.danger
-              }`,
+            color: activeColor,
+            border: `1px solid ${activeColor}`,
 
             transition: "all 0.25s ease",
           }}
         >
           {shieldActive ? "SHIELD ACTIVE" : "SHIELD OFF"}
         </div>
+      </div>
+
+      {/* RIGHT SIDE - VERSION */}
+      <div
+        style={{
+          fontSize: "13px",
+          fontWeight: 600,
+          letterSpacing: "1px",
+          color: colors.textSecondary,
+        }}
+      >
+        v2.0
       </div>
     </div>
   );
