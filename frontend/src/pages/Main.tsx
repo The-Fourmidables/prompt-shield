@@ -55,15 +55,24 @@ export default function Main({
     setPipelineStage("IDLE");
   };
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (
+    text: string,
+    attachments?: File[]
+  ) => {
+    const file = attachments?.[0];
     const turnId = crypto.randomUUID();
 
     setPipelineStage("DETECTING");
 
     const newTurn: ChatTurn = {
       id: turnId,
-      user: { original: text },
+      user: {
+        original: text,
+      },
       llm: { loading: true },
+      attachments: file
+        ? [{ name: file.name }]
+        : undefined,
     };
 
     setTurns((prev) => [...prev, newTurn]);
@@ -79,7 +88,8 @@ export default function Main({
     try {
       const response = await sendMessage(
         text,
-        shieldActive
+        shieldActive,
+        file
       );
 
       setPipelineStage("REHYDRATING");

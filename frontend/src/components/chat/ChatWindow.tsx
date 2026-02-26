@@ -153,6 +153,7 @@ export default function ChatWindow({
                   theme={theme}
                   role="user"
                   originalText={turn.user.original}
+                  attachments={turn.attachments}
                   maskedText={turn.user.masked}
                   isInspecting={inspectionMode}
                   shieldActive={shieldActive}

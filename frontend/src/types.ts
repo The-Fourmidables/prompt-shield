@@ -13,7 +13,7 @@ export type ChatTurn = {
     loading: boolean;
     error?: string;
   };
-
+  attachments?: { name: string }[];
   vaultMap?: Record<string, string>; // Entity mappings
   shieldActive?: boolean; // Indicates if the shield was active for this turn
 };
