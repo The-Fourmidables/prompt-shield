@@ -1,4 +1,17 @@
-import { theme as themeConfig } from "../../theme/theme";
+import React from "react";
+import { getComputedTheme } from "../../theme/theme";
+import type { ThemeMode } from "../../theme/theme";
+
+interface MessageBubbleProps {
+    theme: ThemeMode;
+    role: "user" | "llm";
+    originalText?: string;
+    maskedText?: string;
+    attachments?: { name: string }[];
+    loading?: boolean;
+    shieldActive: boolean;
+    isInspecting: boolean;
+}
 
 export default function MessageBubble({
     theme,
@@ -6,20 +19,12 @@ export default function MessageBubble({
     originalText,
     maskedText,
     attachments,
-    loading,
+    loading = false,
     shieldActive,
     isInspecting,
-}: {
-    theme: "dark" | "light";
-    role: "user" | "llm";
-    originalText?: string;
-    maskedText?: string;
-    attachments?: any[];
-    loading?: boolean;
-    shieldActive: boolean;
-    isInspecting: boolean;
-}) {
-    const colors = themeConfig[theme];
+}: MessageBubbleProps) {
+    const colors = getComputedTheme(theme, shieldActive);
+
     const isUser = role === "user";
 
     const displayText =
@@ -27,7 +32,6 @@ export default function MessageBubble({
             ? maskedText
             : originalText;
 
-    const isLoading = loading === true;
     const dotStyle: React.CSSProperties = {
         width: "6px",
         height: "6px",
@@ -38,13 +42,31 @@ export default function MessageBubble({
         animation: "typing 1s infinite ease-in-out",
     };
 
+    const bubbleBackground = isUser
+        ? shieldActive
+            ? theme === "dark"
+                ? `${colors.accent}18`
+                : `${colors.accent}22`
+            : theme === "dark"
+                ? `${colors.danger}22`
+                : `${colors.danger}18`
+        : colors.surfaceAlt;
+
+    const bubbleBorder = isUser
+        ? `1px solid ${shieldActive
+            ? `${colors.accent}35`
+            : `${colors.danger}55`
+        }`
+        : `1px solid ${colors.border}`;
+
     return (
         <div
             style={{
                 display: "flex",
-                alignItems: "flex-start",
+                alignItems: "center",
                 justifyContent: isUser ? "flex-end" : "flex-start",
-                gap: "12px",
+                gap: "10px",
+                padding: "2px 0",
             }}
         >
             {/* LLM Avatar */}
@@ -59,10 +81,8 @@ export default function MessageBubble({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: !shieldActive ? colors.danger : colors.accent,
-                        boxShadow: !shieldActive
-                            ? `0 0 12px ${colors.danger}33`
-                            : `0 0 12px ${colors.accent}33`,
+                        color: colors.accent,
+                        boxShadow: `0 0 12px ${colors.glow}`,
                         flexShrink: 0,
                     }}
                 >
@@ -73,8 +93,6 @@ export default function MessageBubble({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
                     >
                         <rect x="3" y="8" width="18" height="10" rx="2" />
                         <circle cx="8" cy="13" r="1" />
@@ -84,84 +102,64 @@ export default function MessageBubble({
                 </div>
             )}
 
-            {/* Bubble */}
+            {/* Message Bubble */}
             <div
                 style={{
-                    backgroundColor:
-                        isUser && !shieldActive
-                            ? theme === "light"
-                                ? `${colors.danger}15`
-                                : `${colors.danger}22`
-                            : isUser
-                                ? theme === "light"
-                                    ? `${colors.accent}25`
-                                    : colors.accent
-                                : colors.surfaceAlt,
-
-                    color:
-                        isUser && !shieldActive
-                            ? theme === "light"
-                                ? colors.textPrimary
-                                : colors.danger
-                            : isUser
-                                ? theme === "light"
-                                    ? colors.textPrimary
-                                    : colors.accentText
-                                : colors.textPrimary,
-
-                    padding: "14px 18px",
+                    backgroundColor: bubbleBackground,
+                    color: isUser
+    ? shieldActive
+        ? colors.textPrimary
+        : colors.danger
+    : colors.textPrimary,
+                    padding: "16px 20px",
                     borderRadius: "18px",
-
-                    boxShadow:
-                        isUser && !shieldActive
-                            ? `0 0 12px ${colors.danger}22`
-                            : "none",
-
-                    border:
-                        isUser && !shieldActive
-                            ? `1px solid ${colors.danger}55`
-                            : isUser
-                                ? "none"
-                                : `1px solid ${colors.border}`,
-
-                    maxWidth: "60%",
+                    border: `1px solid ${bubbleBorder}`,
+                    maxWidth: "680px",
+                    minWidth: "120px",
                     fontSize: "14px",
-
+                    lineHeight: "1.6",
+                    letterSpacing: "0.2px",
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
-                    overflowWrap: "anywhere",
+                    backdropFilter: "blur(6px)",
+                    transition: "all 0.18s ease",
                 }}
             >
-                <>
-                    {attachments && attachments.length > 0 && (
-                        <div style={{ marginBottom: displayText ? "8px" : "0px" }}>
-                            {attachments.map((att, i) => (
-                                <div
-                                    key={i}
-                                    style={{
-                                        padding: "6px 10px",
-                                        borderRadius: "8px",
-                                        backgroundColor: "rgba(255,255,255,0.08)",
-                                        fontSize: "12px",
-                                        marginBottom: "6px",
-                                    }}
-                                >
-                                    📎 {att.name}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                {/* Attachments */}
+                {attachments && attachments.length > 0 && (
+                    <div
+                        style={{
+                            marginBottom: displayText ? "8px" : "0px",
+                        }}
+                    >
+                        {attachments.map((att, i) => (
+                            <div
+                                key={i}
+                                style={{
+                                    padding: "6px 10px",
+                                    borderRadius: "8px",
+                                    backgroundColor: colors.surface,
+                                    border: `1px solid ${colors.border}`,
+                                    fontSize: "12px",
+                                    marginBottom: "6px",
+                                }}
+                            >
+                                📎 {att.name}
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                    {isLoading ? (
-                        <div style={{ display: "flex", gap: "6px" }}>
-                            <span style={dotStyle} />
-                            <span style={{ ...dotStyle, animationDelay: "0.2s" }} />
-                            <span style={{ ...dotStyle, animationDelay: "0.4s" }} />
-                        </div>
-                    ) : (
-                        displayText
-                    )}
-                </>
+                {/* Loading indicator */}
+                {loading ? (
+                    <div style={{ display: "flex", gap: "6px" }}>
+                        <span style={dotStyle} />
+                        <span style={{ ...dotStyle, animationDelay: "0.2s" }} />
+                        <span style={{ ...dotStyle, animationDelay: "0.4s" }} />
+                    </div>
+                ) : (
+                    displayText
+                )}
             </div>
 
             {/* User Avatar */}
@@ -187,8 +185,6 @@ export default function MessageBubble({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
                     >
                         <circle cx="12" cy="8" r="4" />
                         <path d="M6 20c0-4 3-6 6-6s6 2 6 6" />

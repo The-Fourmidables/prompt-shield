@@ -9,6 +9,7 @@ import ChatInput from "../components/chat/ChatInput";
 import ProcessingPipeline from "../components/ui/ProcessingPipeline";
 import VaultCard from "../components/ui/VaultCard";
 
+type RightPanelItem = "pipeline" | "vault";
 
 export default function Main({
   theme,
@@ -18,10 +19,15 @@ export default function Main({
   setTheme: React.Dispatch<React.SetStateAction<"dark" | "light">>;
 }) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
-  const [pipelineStage, setPipelineStage] = useState<string>("IDLE");
-  const [activeMapping, setActiveMapping] = useState(false);
+  const [pipelineStage, setPipelineStage] =
+    useState<string>("IDLE");
+
   const [shieldActive, setShieldActive] = useState(true);
-  const [inspectionMode, setInspectionMode] = useState(false);
+  const [inspectionMode, setInspectionMode] =
+    useState(false);
+
+  const [rightPanelStack, setRightPanelStack] =
+    useState<RightPanelItem[]>([]);
 
   const baseColors = themeConfig[theme];
 
@@ -52,7 +58,6 @@ export default function Main({
   const handleSend = async (text: string) => {
     const turnId = crypto.randomUUID();
 
-    // Stage 1 — Detecting
     setPipelineStage("DETECTING");
 
     const newTurn: ChatTurn = {
@@ -63,21 +68,20 @@ export default function Main({
 
     setTurns((prev) => [...prev, newTurn]);
 
-    // Short visual pause
     await new Promise((r) => setTimeout(r, 300));
 
-    // Stage 2 — Masking
     setPipelineStage("MASKING_COMPLETE");
 
     await new Promise((r) => setTimeout(r, 300));
 
-    // Stage 3 — Transmission (real async phase)
     setPipelineStage("TRANSMITTING");
 
     try {
-      const response = await sendMessage(text, shieldActive);
+      const response = await sendMessage(
+        text,
+        shieldActive
+      );
 
-      // Stage 4 — Rehydrating
       setPipelineStage("REHYDRATING");
 
       await new Promise((r) => setTimeout(r, 300));
@@ -103,9 +107,8 @@ export default function Main({
         )
       );
 
-      // Final stage
       setPipelineStage("COMPLETE");
-    } catch (error) {
+    } catch {
       setPipelineStage("COMPLETE");
 
       setTurns((prev) =>
@@ -115,7 +118,8 @@ export default function Main({
               ...turn,
               llm: {
                 loading: false,
-                rehydrated: "⚠️ Backend connection failed.",
+                rehydrated:
+                  "⚠️ Backend connection failed.",
               },
             }
             : turn
@@ -133,7 +137,7 @@ export default function Main({
         display: "flex",
         flexDirection: "column",
         transition:
-          "background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), color 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          "background-color 0.6s cubic-bezier(0.4,0,0.2,1), color 0.6s cubic-bezier(0.4,0,0.2,1)",
       }}
     >
       <Header
@@ -154,16 +158,17 @@ export default function Main({
         <Sidebar
           theme={theme}
           setTheme={setTheme}
-          activeMapping={activeMapping}
-          setActiveMapping={setActiveMapping}
           inspectionMode={inspectionMode}
           setInspectionMode={setInspectionMode}
+          rightPanelStack={rightPanelStack}
+          setRightPanelStack={setRightPanelStack}
           colors={colors}
         />
 
+        {/* CHAT CONTAINER */}
         <div
           style={{
-            flex: 2,
+            flex: rightPanelStack.length === 0 ? 1 : 2,
             backgroundColor: colors.surface,
             border: `1px solid ${colors.border}`,
             borderRadius: "16px",
@@ -172,11 +177,7 @@ export default function Main({
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            position: "relative",
             overflow: "hidden",
-            transition:
-              "background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-              
           }}
         >
           <ChatWindow
@@ -184,6 +185,7 @@ export default function Main({
             turns={turns}
             shieldActive={shieldActive}
             inspectionMode={inspectionMode}
+            rightPanelStack={rightPanelStack}
           />
 
           <ChatInput
@@ -194,69 +196,17 @@ export default function Main({
           />
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            backgroundColor: colors.surface,
-            border: `1px solid ${colors.border}`,
-            borderRadius: "16px",
-            boxShadow: `0 0 40px ${colors.glow}`,
-            padding: "20px",
-            transition:
-              "background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
+        {/* RIGHT PANEL */}
+        {rightPanelStack.length > 0 && (
           <div
             style={{
+              width: "340px",
               display: "flex",
               flexDirection: "column",
-              height: "100%",
               gap: "16px",
             }}
           >
-            {!shieldActive && (
-              <div
-                style={{
-                  padding: "14px 18px",
-                  borderRadius: "12px",
-                  backgroundColor: colors.surface,
-                  border: `1px solid ${baseColors.danger}55`,
-                  borderLeft: `4px solid ${baseColors.danger}`,
-                  color: baseColors.danger,
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  boxShadow: `0 0 25px ${baseColors.danger}33`,
-                }}
-              >
-                <div
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    backgroundColor: baseColors.danger,
-                    boxShadow: `0 0 10px ${baseColors.danger}`,
-                  }}
-                />
-
-                <div>
-                  Privacy Protection Disabled
-                  <div style={{ fontSize: "12px", opacity: 0.75, marginTop: "3px" }}>
-                    Sensitive data is being transmitted without masking.
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* PIPELINE CARD */}
-            <div
-              style={{
-                flex: activeMapping ? 1 : 1,
-                minHeight: 0,
-                display: "flex",
-              }}
-            >
+            {rightPanelStack.includes("pipeline") && (
               <ProcessingPipeline
                 stage={pipelineStage}
                 hasVault={
@@ -265,31 +215,22 @@ export default function Main({
                 }
                 colors={colors}
               />
-            </div>
+            )}
 
-            {/* VAULT CARD */}
-            {activeMapping && (
-              <div
-                style={{
-                  flex: 1,
-                  minHeight: 0,
-                  display: "flex",
-                }}
-              >
-                <VaultCard
-                  themeMode={theme}
-                  hasTurns={turns.length > 0}
-                  shieldActive={shieldActive}
-                  vaultMap={
-                    turns.length > 0
-                      ? turns[turns.length - 1].vaultMap
-                      : undefined
-                  }
-                />
-              </div>
+            {rightPanelStack.includes("vault") && (
+              <VaultCard
+                themeMode={theme}
+                hasTurns={turns.length > 0}
+                shieldActive={shieldActive}
+                vaultMap={
+                  turns.length > 0
+                    ? turns[turns.length - 1].vaultMap
+                    : undefined
+                }
+              />
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

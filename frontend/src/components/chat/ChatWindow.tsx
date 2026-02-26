@@ -2,121 +2,102 @@ import { getComputedTheme } from "../../theme/theme";
 import MessageBubble from "./MessageBubble";
 import type { ChatTurn } from "../../types";
 
-import React from "react";
-
 export default function ChatWindow({
   theme,
   turns,
   inspectionMode,
   shieldActive,
+  rightPanelStack,
 }: {
   theme: "dark" | "light";
   turns: ChatTurn[];
   inspectionMode: boolean;
   shieldActive: boolean;
+  rightPanelStack: ("pipeline" | "vault")[];
 }) {
   const colors = getComputedTheme(theme, shieldActive);
+  void rightPanelStack;
+
   const isInitialState = turns.length === 0;
-  const mysticStyle: React.CSSProperties = {
-    position: "relative",
-  };
 
   return (
     <div
       style={{
-        position: "relative",
         flex: 1,
-        overflowY: "auto",
         display: "flex",
-        flexDirection: "column",
-        justifyContent: isInitialState ? "center" : "flex-start",
-        alignItems: isInitialState ? "center" : "stretch",
-        gap: "20px",
+        justifyContent: "center",
+        alignItems: "center",
         padding: "24px",
-        textAlign: isInitialState ? "center" : "left",
-
-        ...mysticStyle,
-        transition:
-          "box-shadow 0.4s ease, background-image 0.4s ease",
+        overflow: "hidden", // prevents card movement
       }}
     >
-      {isInitialState ? (
-        <>
-          <div
-            style={{
-              width: "72px",
-              height: "72px",
-              borderRadius: "20px",
-              backgroundColor: colors.surfaceAlt,
-              border: `1px solid ${colors.border}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: `0 0 40px ${colors.accent}22`,
-              marginBottom: "20px",
-            }}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={colors.accent}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4z" />
-            </svg>
-          </div>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "1100px",
+          height: "100%",
+          background: colors.surface,
+          border: `1px solid ${colors.border}`,
+          borderRadius: "20px",
+          boxShadow: `
+            0 0 0 1px rgba(255,255,255,0.02),
+            0 20px 60px rgba(0,0,0,0.6),
+            inset 0 0 40px rgba(255,255,255,0.02)
+          `,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden", // locks card
+        }}
+      >
+        {/* Scrollable message area */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "32px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+          }}
+        >
+          {isInitialState ? (
+            <>
+              {/* KEEP YOUR EXISTING INITIAL STATE CONTENT HERE */}
+            </>
+          ) : (
+            turns.map((turn) => (
+              <div
+                key={turn.id}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                <MessageBubble
+                  theme={theme}
+                  role="user"
+                  originalText={turn.user.original}
+                  maskedText={turn.user.masked}
+                  isInspecting={inspectionMode}
+                  shieldActive={shieldActive}
+                />
 
-          <h2 style={{ fontSize: "20px", marginBottom: "10px" }}>
-            PRIVACY-FIRST AI CHAT
-          </h2>
-
-          <p
-            style={{
-              color: colors.textSecondary,
-              maxWidth: "420px",
-              fontSize: "14px",
-              lineHeight: "1.6",
-            }}
-          >
-            Type naturally. Our shield detects and masks PII
-            before it ever touches the model.
-          </p>
-        </>
-      ) : (
-        turns.map((turn) => (
-          <div
-            key={turn.id}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px", // 👈 controls space between user & LLM
-            }}
-          >
-            <MessageBubble
-              theme={theme}
-              role="user"
-              originalText={turn.user.original}
-              maskedText={turn.user.masked}
-              isInspecting={inspectionMode}
-              shieldActive={shieldActive}
-            />
-
-            <MessageBubble
-              theme={theme}
-              role="llm"
-              originalText={turn.llm.rehydrated}
-              maskedText={turn.llm.masked}
-              isInspecting={inspectionMode}
-              loading={turn.llm.loading}
-              shieldActive={shieldActive}
-            />
-          </div>
-        ))
-      )}
+                <MessageBubble
+                  theme={theme}
+                  role="llm"
+                  originalText={turn.llm.rehydrated}
+                  maskedText={turn.llm.masked}
+                  isInspecting={inspectionMode}
+                  loading={turn.llm.loading}
+                  shieldActive={shieldActive}
+                />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
