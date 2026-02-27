@@ -5,7 +5,6 @@ import httpx
 import re
 from dotenv import load_dotenv
 
-# Absolute imports
 from app.mask_pipeline import full_mask
 from app.security.audit_logger import log_event
 from app.security.rehydrate import rehydrate
@@ -22,7 +21,6 @@ router = APIRouter()
 # 0️⃣ HELPER: JSON SANITIZER
 # ==========================================
 def sanitize_text(text: str) -> str:
-    """Removes non-printable control characters that break JSON."""
     if not text:
         return ""
     return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', ' ', text)
@@ -40,8 +38,13 @@ class ChatResponse(BaseModel):
     shield_active: bool
 
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
-    message: str
+    messages: list[ChatMessage]
     shield_active: bool = True
 
 
@@ -50,12 +53,17 @@ class ChatRequest(BaseModel):
 # ==========================================
 @router.post("/", response_model=ChatResponse)
 async def chat_text_only(request: ChatRequest):
-    print("🔥 BACKEND RECEIVED:", request.message)
 
-    clean_message = sanitize_text(request.message)
+    clean_messages = [
+        {
+            "role": msg.role,
+            "content": sanitize_text(msg.content)
+        }
+        for msg in request.messages
+    ]
 
     return await _process_request(
-        clean_message,
+        clean_messages,
         event_type="PROMPT_MASKED",
         shield_active=request.shield_active
     )
@@ -83,31 +91,53 @@ async def chat_with_file(
 
     full_prompt = f"{clean_instruction}\n\n[Document Content]:\n{clean_ocr_text}"
 
+    messages = [
+        {"role": "user", "content": full_prompt}
+    ]
+
     return await _process_request(
-        full_prompt,
+        messages,
         event_type="OCR_MASKED",
         shield_active=True
     )
 
 
 # ==========================================
-# 4️⃣ SHARED LOGIC (The Brain)
+# 4️⃣ SHARED LOGIC
 # ==========================================
 async def _process_request(
-    text_input: str,
+    messages: list[dict],
     event_type="PROMPT_MASKED",
     shield_active: bool = True
 ):
+
     pipeline_stage = "DETECTING"
 
-    # 1️⃣ Mask
-    masked_prompt, vault_map = full_mask(text_input)
+    # 1️⃣ MASK ENTIRE CONVERSATION
+    vault_map = {}
+    masked_messages = []
+
+    for msg in messages:
+        if msg["role"] == "user":
+            masked_content, new_map = full_mask(msg["content"])
+
+            # Merge mappings instead of overwriting
+            vault_map.update(new_map)
+
+            masked_messages.append({
+                "role": "user",
+                "content": masked_content
+            })
+        else:
+            masked_messages.append(msg)
+
     pipeline_stage = "MASKING_COMPLETE"
 
-    # 2️⃣ Log
-    log_event(event_type, masked_prompt)
+    # Log last masked user message
+    if masked_messages:
+        log_event(event_type, masked_messages[-1]["content"])
 
-    # 3️⃣ Call LLM
+    # 2️⃣ CALL LLM
     if not OPENROUTER_API_KEY:
         raise HTTPException(
             status_code=500,
@@ -137,17 +167,11 @@ async def _process_request(
             "You are a helpful AI assistant. Provide a natural, direct response."
         )
 
-    # 🔹 FIXED: model_input definition (nothing else changed)
-    if shield_active:
-        model_input = masked_prompt
-    else:
-        model_input = text_input
-
     payload = {
         "model": "google/gemini-2.0-flash-001",
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": model_input}
+            *masked_messages
         ]
     }
 
@@ -178,7 +202,7 @@ async def _process_request(
         except Exception as e:
             reply_masked = f"Connection Error: {str(e)}"
 
-    # 4️⃣ Rehydrate
+    # 3️⃣ REHYDRATE
     pipeline_stage = "REHYDRATING"
 
     if shield_active:
@@ -186,13 +210,12 @@ async def _process_request(
     else:
         final_reply = reply_masked
 
-    # 5️⃣ Return EVERYTHING
     pipeline_stage = "COMPLETE"
 
     return {
         "reply": final_reply,
         "masked_reply": reply_masked,
-        "masked_prompt": masked_prompt,
+        "masked_prompt": masked_messages[-1]["content"] if masked_messages else "",
         "vault_map": vault_map,
         "pipeline_stage": pipeline_stage,
         "shield_active": shield_active

@@ -12,16 +12,15 @@ export interface ChatResponse {
 const BASE_URL = "http://localhost:8000";
 
 export async function sendMessage(
-  message: string,
+  messages: { role: string; content: string }[],
   shieldActive: boolean,
   file?: File
 ): Promise<ChatResponse> {
 
-  // 🟢 FILE UPLOAD (OCR)
   if (file) {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("instruction", message || "Analyze this document.");
+    formData.append("instruction", messages[messages.length - 1]?.content || "Analyze this document.");
 
     const response = await fetch(`${BASE_URL}/chat/upload`, {
       method: "POST",
@@ -36,14 +35,13 @@ export async function sendMessage(
     return response.json();
   }
 
-  // 🔵 TEXT-ONLY
   const response = await fetch(`${BASE_URL}/chat/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      message,
+      messages,
       shield_active: shieldActive,
     }),
   });

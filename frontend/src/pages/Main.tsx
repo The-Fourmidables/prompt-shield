@@ -93,8 +93,16 @@ export default function Main({
     setPipelineStage("TRANSMITTING");
 
     try {
+      const history = [
+        ...turns.map(turn => ({
+          role: "user",
+          content: turn.user.original
+        })),
+        { role: "user", content: text }
+      ];
+
       const response = await sendMessage(
-        text,
+        history,
         shieldActive,
         file
       );
