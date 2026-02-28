@@ -15,6 +15,7 @@ export async function sendMessage(
   messages: { role: string; content: string }[],
   shieldActive: boolean,
   onStageUpdate: (stage: string) => void,
+  persistentVault: Record<string, string>,   // 🔥 NEW
   file?: File
 ): Promise<ChatResponse> {
 
@@ -53,6 +54,7 @@ export async function sendMessage(
     body: JSON.stringify({
       messages,
       shield_active: shieldActive,
+      vault: persistentVault,   // 🔥 SEND PREVIOUS VAULT
     }),
   });
 
@@ -95,5 +97,9 @@ export async function sendMessage(
     throw new Error("No final data received.");
   }
 
-  return finalData;
+  if (finalData?.vault_map) {
+  Object.assign(persistentVault, finalData.vault_map);
+}
+
+return finalData;
 }

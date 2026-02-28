@@ -26,7 +26,12 @@ SYSTEM_PROMPT = (
 
 class LLMProxy:
 
-    async def send(self, masked_prompt: str, model: str = "openai/gpt-3.5-turbo") -> str:
+    async def send_messages(
+        self,
+        messages: list,
+        model: str = "openai/gpt-3.5-turbo"
+    ) -> str:
+
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
@@ -38,7 +43,7 @@ class LLMProxy:
             "model": model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": masked_prompt},
+                *messages
             ],
             "temperature": 0.7,
             "max_tokens": 1000,
@@ -60,10 +65,17 @@ class LLMProxy:
 
         try:
             return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as e:
-            raise RuntimeError(f"Unexpected OpenRouter response format: {data}")
+        except (KeyError, IndexError):
+            raise RuntimeError(
+                f"Unexpected OpenRouter response format: {data}"
+            )
 
-    def send_sync(self, masked_prompt: str, model: str = "openai/gpt-3.5-turbo") -> str:
+    def send_sync(
+        self,
+        masked_prompt: str,
+        model: str = "openai/gpt-3.5-turbo"
+    ) -> str:
+
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
@@ -75,7 +87,7 @@ class LLMProxy:
             "model": model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": masked_prompt},
+                {"role": "user", "content": masked_prompt},
             ],
             "temperature": 0.7,
             "max_tokens": 1000,
@@ -98,4 +110,6 @@ class LLMProxy:
         try:
             return data["choices"][0]["message"]["content"]
         except (KeyError, IndexError):
-            raise RuntimeError(f"Unexpected OpenRouter response format: {data}")
+            raise RuntimeError(
+                f"Unexpected OpenRouter response format: {data}"
+            )

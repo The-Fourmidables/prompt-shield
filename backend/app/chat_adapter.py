@@ -1,9 +1,5 @@
 """
 chat_adapter.py  –  Frontend Compatibility Layer
-
-Provides /chat and /chat/upload routes
-that match frontend v2.0 expectations,
-while internally using backend v2 engine.
 """
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
@@ -26,7 +22,7 @@ rehydrator = Rehydrator()
 ocr = OCRProcessor()
 
 
-# ── Frontend Schemas ──────────────────────────────────────────────────────────
+# ── Schemas ─────────────────────────────────────────────────────
 
 class ChatMessage(BaseModel):
     role: str
@@ -36,6 +32,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
     shield_active: bool = True
+    vault: dict | None = None   # ← previous persistent vault from frontend
 
 
 class ChatResponse(BaseModel):
@@ -47,16 +44,9 @@ class ChatResponse(BaseModel):
     shield_active: bool
 
 
-# ── Helper: Convert 2.0 entity_map → frontend vault_map ──────────────────────
+# ── Helper ──────────────────────────────────────────────────────
 
 def convert_entity_map(entity_map: dict) -> dict:
-    """
-    Convert:
-        { original: { placeholder: "<Email1>", ... } }
-
-    Into:
-        { "<Email1>": original }
-    """
     vault_map = {}
     for original, info in entity_map.items():
         placeholder = info.get("placeholder")
@@ -65,37 +55,57 @@ def convert_entity_map(entity_map: dict) -> dict:
     return vault_map
 
 
-# ── /chat/ (Text) ─────────────────────────────────────────────────────────────
+# ── /chat/ (Text Streaming) ─────────────────────────────────────
 
 @router.post("/")
 async def chat_text(request: ChatRequest):
 
     async def event_stream():
 
-        # Combine all user messages into one prompt
-        user_messages = [m.content for m in request.messages if m.role == "user"]
-        full_prompt = "\n".join(user_messages).strip()
-
-        if not full_prompt:
-            error_payload = {"error": "Empty prompt."}
-            yield f"data: {json.dumps(error_payload)}\n\n"
+        if not request.messages:
+            yield f"data: {json.dumps({'error': 'Empty prompt.'})}\n\n"
             return
 
-        # Stage 1 — DETECTING
+        structured_messages = []
+        latest_user_index = None
+
+        for i, msg in enumerate(request.messages):
+            if msg.role == "user":
+                structured_messages.append(
+                    {"role": "user", "content": msg.content}
+                )
+                latest_user_index = i
+            else:
+                structured_messages.append(
+                    {"role": "assistant", "content": msg.content}
+                )
+
+        if latest_user_index is None:
+            yield f"data: {json.dumps({'error': 'No user message found.'})}\n\n"
+            return
+
+        latest_user_message = request.messages[latest_user_index].content.strip()
+
+        if not latest_user_message:
+            yield f"data: {json.dumps({'error': 'Empty prompt.'})}\n\n"
+            return
+
+        # Stage 1
         yield f"data: {json.dumps({'stage': 'DETECTING'})}\n\n"
         await asyncio.sleep(0.05)
 
-        # If shield disabled → skip masking entirely
+        # ── Shield OFF ──
         if not request.shield_active:
+
             yield f"data: {json.dumps({'stage': 'TRANSMITTING'})}\n\n"
 
-            llm_response = await llm_proxy.send(full_prompt)
+            llm_response = await llm_proxy.send_messages(structured_messages)
 
             final_payload = {
                 "stage": "COMPLETE",
                 "reply": llm_response,
                 "masked_reply": llm_response,
-                "masked_prompt": full_prompt,
+                "masked_prompt": latest_user_message,
                 "vault_map": {},
                 "shield_active": False,
             }
@@ -103,28 +113,43 @@ async def chat_text(request: ChatRequest):
             yield f"data: {json.dumps(final_payload)}\n\n"
             return
 
-        # Shield ON → full pipeline
+        # ── Shield ON ──
 
-        # Stage 2 — MASKING
-        masked_prompt, entity_map, _ = masker.mask(full_prompt)
+        masked_prompt, entity_map, _ = masker.mask(latest_user_message)
+        structured_messages[latest_user_index]["content"] = masked_prompt
+
         yield f"data: {json.dumps({'stage': 'MASKING_COMPLETE'})}\n\n"
-
-        # Stage 3 — TRANSMITTING
         yield f"data: {json.dumps({'stage': 'TRANSMITTING'})}\n\n"
 
         try:
-            llm_response = await llm_proxy.send(masked_prompt)
+            llm_response = await llm_proxy.send_messages(structured_messages)
         except Exception as e:
-            error_payload = {"error": f"LLM error: {str(e)}"}
-            yield f"data: {json.dumps(error_payload)}\n\n"
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
             return
 
-        # Stage 4 — REHYDRATING
         yield f"data: {json.dumps({'stage': 'REHYDRATING'})}\n\n"
 
-        final_response = rehydrator.rehydrate(llm_response, entity_map)
+        # 🔥 MERGE PREVIOUS VAULT WITH CURRENT ENTITY MAP
 
-        # Stage 5 — COMPLETE
+        combined_entity_map = {}
+
+        # Add previous vault mappings (from frontend)
+        if request.vault:
+            for placeholder, original in request.vault.items():
+                combined_entity_map[original] = {
+                    "placeholder": placeholder,
+                    "type": "PII",
+                    "name": "FROM_MEMORY"
+                }
+
+        # Add current turn entities
+        combined_entity_map.update(entity_map)
+
+        final_response = rehydrator.rehydrate(
+            llm_response,
+            combined_entity_map
+        )
+
         final_payload = {
             "stage": "COMPLETE",
             "reply": final_response,
@@ -139,7 +164,7 @@ async def chat_text(request: ChatRequest):
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
-# ── /chat/upload (File) ───────────────────────────────────────────────────────
+# ── /chat/upload ─────────────────────────────────────────
 
 @router.post("/upload", response_model=ChatResponse)
 async def chat_upload(
@@ -171,7 +196,9 @@ async def chat_upload(
     masked_prompt, entity_map, _ = masker.mask(full_prompt)
 
     try:
-        llm_response = await llm_proxy.send(masked_prompt)
+        llm_response = await llm_proxy.send_messages(
+            [{"role": "user", "content": masked_prompt}]
+        )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"LLM error: {str(e)}")
 
