@@ -160,7 +160,7 @@ export default function ChatWindow({
                   attachments={turn.attachments}
                   maskedText={turn.user.masked}
                   isInspecting={inspectionMode}
-                  shieldActive={shieldActive}
+                  shieldActive={turn.shieldActive ?? shieldActive}
                 />
 
                 <MessageBubble
@@ -170,7 +170,7 @@ export default function ChatWindow({
                   maskedText={turn.llm.masked}
                   isInspecting={inspectionMode}
                   loading={turn.llm.loading}
-                  shieldActive={shieldActive}
+                  shieldActive={turn.shieldActive ?? shieldActive}
                 />
               </div>
             ))

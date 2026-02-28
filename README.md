@@ -65,6 +65,16 @@ This guarantees zero raw personal data reaches external APIs.
 
 ---
 
+## 🔐 Privacy Model
+
+- Masking occurs server-side before LLM transmission.
+- Only placeholder tokens are sent to external APIs.
+- Original sensitive values never leave the system.
+- Rehydration happens locally after model response.
+- Vault mappings are stateless and scoped per request.
+
+---
+
 ## 🛠 Tech Stack
 
 ### Frontend
@@ -76,34 +86,42 @@ This guarantees zero raw personal data reaches external APIs.
 - FastAPI
 - Python
 
-### AI Integration
-- Gemini API
-- OpenAI API
+### 🤖 AI Integration
+
+- OpenRouter API (model-agnostic LLM routing)
+- Compatible with OpenAI, Gemini, Anthropic and other providers via OpenRouter
+- Secure masked transmission using HTTPX
 
 ---
 
 ## 📂 Project Structure
 
 ```
-
 backend/
 │── app/
-│   ├── masking.py
-│   ├── mask_pipeline.py
-│   ├── routes/
-│   ├── security/
-│── main.py
+│   ├── main.py              # FastAPI entry point
+│   ├── chat_adapter.py      # Frontend compatibility layer (/chat routes)
+│   ├── masker.py            # PII masking engine
+│   ├── rehydrator.py        # Local placeholder restoration
+│   ├── llm_proxy.py         # LLM routing (OpenRouter/httpx)
+│   ├── ocr_processor.py     # OCR support for files
+│   ├── code_masker.py       # Secret masking for source code
+│   └── __init__.py
+│── tests/
+│   ├── test_code_masker.py
+│   └── test_pipeline.py
 
 frontend/
-│── components/
-│── services/
-│── public/assets/demo.png
-│── App.tsx
-│── index.tsx
-
-README.md
-
-````
+│── src/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   ├── theme/
+│   ├── types.ts
+│   └── main.tsx
+│── index.html
+│── vite.config.ts
+```
 
 ---
 
@@ -121,10 +139,11 @@ cd prompt-shield
 ### 2️⃣ Backend Setup
 
 ```bash
+cd backend
 python -m venv venv
-venv\Scripts\activate        # mac/linux: source venv/bin/activate
+venv\Scripts\activate   # mac/linux: source venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
 Backend runs at:
@@ -176,14 +195,21 @@ No personal data ever leaves the system.
 
 ## 🔌 API Endpoints
 
-### POST `/chat`
+### POST `/chat/`
+Processes text input through masking → LLM → rehydration pipeline.
 
-Sends masked prompt to model.
+### POST `/chat/upload`
+Processes uploaded image/PDF through OCR → masking → LLM → rehydration.
 
-### GET `/health`
+### GET `/`
+Basic service status endpoint.
 
-Health check endpoint.
+## 🧪 Running Tests
 
+```bash
+cd backend
+pytest
+```
 ---
 
 ## 🤝 Contributing
