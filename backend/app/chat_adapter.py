@@ -7,8 +7,11 @@ while internally using backend v2 engine.
 """
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List
+import json
+import asyncio
 
 from app.masker import PIIMasker
 from app.llm_proxy import LLMProxy
@@ -64,46 +67,76 @@ def convert_entity_map(entity_map: dict) -> dict:
 
 # ── /chat/ (Text) ─────────────────────────────────────────────────────────────
 
-@router.post("/", response_model=ChatResponse)
+@router.post("/")
 async def chat_text(request: ChatRequest):
 
-    # Combine all user messages into one prompt
-    user_messages = [m.content for m in request.messages if m.role == "user"]
-    full_prompt = "\n".join(user_messages).strip()
+    async def event_stream():
 
-    if not full_prompt:
-        raise HTTPException(status_code=400, detail="Empty prompt.")
+        # Combine all user messages into one prompt
+        user_messages = [m.content for m in request.messages if m.role == "user"]
+        full_prompt = "\n".join(user_messages).strip()
 
-    # If shield disabled → skip masking entirely
-    if not request.shield_active:
-        llm_response = await llm_proxy.send(full_prompt)
-        return ChatResponse(
-            reply=llm_response,
-            masked_reply=llm_response,
-            masked_prompt=full_prompt,
-            vault_map={},
-            pipeline_stage="COMPLETE",
-            shield_active=False,
-        )
+        if not full_prompt:
+            error_payload = {"error": "Empty prompt."}
+            yield f"data: {json.dumps(error_payload)}\n\n"
+            return
 
-    # Shield ON → full pipeline
-    masked_prompt, entity_map, _ = masker.mask(full_prompt)
+        # Stage 1 — DETECTING
+        yield f"data: {json.dumps({'stage': 'DETECTING'})}\n\n"
+        await asyncio.sleep(0.05)
 
-    try:
-        llm_response = await llm_proxy.send(masked_prompt)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"LLM error: {str(e)}")
+        # If shield disabled → skip masking entirely
+        if not request.shield_active:
+            yield f"data: {json.dumps({'stage': 'TRANSMITTING'})}\n\n"
 
-    final_response = rehydrator.rehydrate(llm_response, entity_map)
+            llm_response = await llm_proxy.send(full_prompt)
 
-    return ChatResponse(
-        reply=final_response,
-        masked_reply=llm_response,
-        masked_prompt=masked_prompt,
-        vault_map=convert_entity_map(entity_map),
-        pipeline_stage="COMPLETE",
-        shield_active=True,
-    )
+            final_payload = {
+                "stage": "COMPLETE",
+                "reply": llm_response,
+                "masked_reply": llm_response,
+                "masked_prompt": full_prompt,
+                "vault_map": {},
+                "shield_active": False,
+            }
+
+            yield f"data: {json.dumps(final_payload)}\n\n"
+            return
+
+        # Shield ON → full pipeline
+
+        # Stage 2 — MASKING
+        masked_prompt, entity_map, _ = masker.mask(full_prompt)
+        yield f"data: {json.dumps({'stage': 'MASKING_COMPLETE'})}\n\n"
+
+        # Stage 3 — TRANSMITTING
+        yield f"data: {json.dumps({'stage': 'TRANSMITTING'})}\n\n"
+
+        try:
+            llm_response = await llm_proxy.send(masked_prompt)
+        except Exception as e:
+            error_payload = {"error": f"LLM error: {str(e)}"}
+            yield f"data: {json.dumps(error_payload)}\n\n"
+            return
+
+        # Stage 4 — REHYDRATING
+        yield f"data: {json.dumps({'stage': 'REHYDRATING'})}\n\n"
+
+        final_response = rehydrator.rehydrate(llm_response, entity_map)
+
+        # Stage 5 — COMPLETE
+        final_payload = {
+            "stage": "COMPLETE",
+            "reply": final_response,
+            "masked_reply": llm_response,
+            "masked_prompt": masked_prompt,
+            "vault_map": convert_entity_map(entity_map),
+            "shield_active": True,
+        }
+
+        yield f"data: {json.dumps(final_payload)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 # ── /chat/upload (File) ───────────────────────────────────────────────────────

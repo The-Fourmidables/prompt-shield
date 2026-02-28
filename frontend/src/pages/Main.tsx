@@ -69,7 +69,7 @@ export default function Main({
     const file = attachments?.[0];
     const turnId = crypto.randomUUID();
 
-    setPipelineStage("DETECTING");
+
 
     const newTurn: ChatTurn = {
       id: turnId,
@@ -84,14 +84,6 @@ export default function Main({
 
     setTurns((prev) => [...prev, newTurn]);
 
-    await new Promise((r) => setTimeout(r, 300));
-
-    setPipelineStage("MASKING_COMPLETE");
-
-    await new Promise((r) => setTimeout(r, 300));
-
-    setPipelineStage("TRANSMITTING");
-
     try {
       const history = [
         ...turns.map(turn => ({
@@ -104,10 +96,10 @@ export default function Main({
       const response = await sendMessage(
         history,
         shieldActive,
+        (stage) => setPipelineStage(stage),
         file
       );
 
-      setPipelineStage("REHYDRATING");
 
       await new Promise((r) => setTimeout(r, 300));
 
@@ -131,8 +123,7 @@ export default function Main({
             : turn
         )
       );
-
-      setPipelineStage("COMPLETE");
+      ;
     } catch {
       setPipelineStage("COMPLETE");
 

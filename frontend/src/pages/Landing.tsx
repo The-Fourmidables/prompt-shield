@@ -1,10 +1,21 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import NetworkBackground from "../components/ui/NetworkBackground";
 import { theme } from "../theme/theme";
 
 export default function Landing() {
   const navigate = useNavigate();
   const currentTheme = theme.dark;
+
+  const startRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      startRef.current?.focus();
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div
@@ -21,6 +32,11 @@ export default function Landing() {
         @keyframes rotateDisk {
           from { transform: rotate(0deg) scaleY(0.65); }
           to { transform: rotate(360deg) scaleY(0.65); }
+        }
+
+        button:focus {
+          outline: 2px solid ${currentTheme.glow};
+          outline-offset: 4px;
         }
         `}
       </style>
@@ -128,6 +144,7 @@ export default function Landing() {
             </h1>
 
             <button
+              ref={startRef}
               onClick={() => navigate("/app")}
               style={{
                 padding: "10px 28px",
