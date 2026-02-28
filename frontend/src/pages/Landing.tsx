@@ -1,12 +1,13 @@
-import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import NetworkBackground from "../components/ui/NetworkBackground";
 import { theme } from "../theme/theme";
 
-export default function Landing() {
-  const navigate = useNavigate();
-  const currentTheme = theme.dark;
+interface LandingProps {
+  startApp: () => void;
+}
 
+export default function Landing({ startApp }: LandingProps) {
+  const currentTheme = theme.dark;
   const startRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -145,7 +146,7 @@ export default function Landing() {
 
             <button
               ref={startRef}
-              onClick={() => navigate("/app")}
+              onClick={startApp}
               style={{
                 padding: "10px 28px",
                 fontSize: "15px",
