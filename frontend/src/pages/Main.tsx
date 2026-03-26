@@ -19,16 +19,19 @@ export default function Main({
   setTheme: React.Dispatch<React.SetStateAction<"dark" | "light">>;
 }) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
-  const [pipelineStage, setPipelineStage] =
-    useState<string>("IDLE");
+  const [persistentVault, setPersistentVault] = useState<Record<string, string>>({});
+
+  // 10 prompts worth of vault data should be more than enough to keep relevant info without bloating the payload
+  
+  const MAX_VAULT_TURNS = 10;
+  const [pipelineStage, setPipelineStage] = useState<string>("IDLE");
 
   const [shieldActive, setShieldActive] = useState<boolean>(() => {
     const saved = localStorage.getItem("ps_shield");
     return saved === "false" ? false : true;
   });
-  const [inspectionMode, setInspectionMode] =
-    useState(false);
 
+  const [inspectionMode, setInspectionMode] = useState(false);
   const [rightPanelStack, setRightPanelStack] =
     useState<RightPanelItem[]>([]);
 
@@ -52,7 +55,7 @@ export default function Main({
       setPipelineStage("IDLE");
     }
   }, [turns]);
-  // 🔐 Persist shield state
+
   useEffect(() => {
     localStorage.setItem("ps_shield", String(shieldActive));
   }, [shieldActive]);
@@ -60,6 +63,7 @@ export default function Main({
   const handleClearChat = () => {
     setTurns([]);
     setPipelineStage("IDLE");
+    setPersistentVault({});
   };
 
   const handleSend = async (
@@ -68,8 +72,6 @@ export default function Main({
   ) => {
     const file = attachments?.[0];
     const turnId = crypto.randomUUID();
-
-    setPipelineStage("DETECTING");
 
     const newTurn: ChatTurn = {
       id: turnId,
@@ -82,37 +84,37 @@ export default function Main({
         : undefined,
     };
 
-    setTurns((prev) => [...prev, newTurn]);
-
-    await new Promise((r) => setTimeout(r, 300));
-
-    setPipelineStage("MASKING_COMPLETE");
-
-    await new Promise((r) => setTimeout(r, 300));
-
-    setPipelineStage("TRANSMITTING");
+    // Use functional update to guarantee correct snapshot
+    setTurns((prevTurns) => {
+      const updated = [...prevTurns, newTurn];
+      return updated;
+    });
 
     try {
-      const history = [
-        ...turns.map(turn => ({
+      // Build history from latest snapshot safely
+      const history = [...turns, newTurn].flatMap(turn => [
+        {
           role: "user",
-          content: turn.user.original
-        })),
-        { role: "user", content: text }
-      ];
+          content: turn.user.masked ?? turn.user.original
+        },
+        ...(turn.llm.masked
+          ? [{ role: "assistant", content: turn.llm.masked }]
+          : [])
+      ]);
 
       const response = await sendMessage(
         history,
         shieldActive,
+        (stage) => setPipelineStage(stage),
+        persistentVault,
         file
       );
 
-      setPipelineStage("REHYDRATING");
-
       await new Promise((r) => setTimeout(r, 300));
 
-      setTurns((prev) =>
-        prev.map((turn) =>
+      // 🔥 CRITICAL FIX — state-safe update
+      setTurns((prev) => {
+        const updatedTurns = prev.map((turn) =>
           turn.id === turnId
             ? {
               ...turn,
@@ -129,10 +131,36 @@ export default function Main({
               shieldActive: response.shield_active,
             }
             : turn
-        )
-      );
+        );
 
-      setPipelineStage("COMPLETE");
+        // ---- Persistent Vault Logic ----
+        if (response.vault_map) {
+          const recentTurns = updatedTurns.slice(-MAX_VAULT_TURNS);
+
+          const allowedKeys = new Set<string>();
+          recentTurns.forEach((t) => {
+            if (t.vaultMap) {
+              Object.keys(t.vaultMap).forEach((k) => allowedKeys.add(k));
+            }
+          });
+
+          setPersistentVault((prevVault) => {
+            const merged = { ...prevVault, ...response.vault_map };
+
+            const trimmed: Record<string, string> = {};
+            Object.entries(merged).forEach(([k, v]) => {
+              if (allowedKeys.has(k)) {
+                trimmed[k] = v;
+              }
+            });
+
+            return trimmed;
+          });
+        }
+
+        return updatedTurns;
+      });
+
     } catch {
       setPipelineStage("COMPLETE");
 
@@ -190,7 +218,6 @@ export default function Main({
           colors={colors}
         />
 
-        {/* CHAT CONTAINER */}
         <div
           style={{
             flex: rightPanelStack.length === 0 ? 1 : 2,
@@ -221,7 +248,6 @@ export default function Main({
           />
         </div>
 
-        {/* RIGHT PANEL */}
         {rightPanelStack.length > 0 && (
           <div
             style={{
@@ -247,11 +273,7 @@ export default function Main({
                 themeMode={theme}
                 hasTurns={turns.length > 0}
                 shieldActive={shieldActive}
-                vaultMap={
-                  turns.length > 0
-                    ? turns[turns.length - 1].vaultMap
-                    : undefined
-                }
+                vaultMap={persistentVault}
               />
             )}
           </div>

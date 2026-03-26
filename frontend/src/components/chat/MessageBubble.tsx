@@ -11,26 +11,25 @@ interface MessageBubbleProps {
     loading?: boolean;
     shieldActive: boolean;
     isInspecting: boolean;
+    onClick?: () => void; // ✅ ADDED
 }
 
 export default function MessageBubble({
     theme,
     role,
     originalText,
-    maskedText,
+    // maskedText,
     attachments,
     loading = false,
     shieldActive,
     isInspecting,
+    onClick, // ✅ ADDED
 }: MessageBubbleProps) {
     const colors = getComputedTheme(theme, shieldActive);
 
     const isUser = role === "user";
 
-    const displayText =
-        isInspecting && shieldActive && maskedText
-            ? maskedText
-            : originalText;
+    const displayText = originalText;
 
     const dotStyle: React.CSSProperties = {
         width: "6px",
@@ -53,20 +52,23 @@ export default function MessageBubble({
         : colors.surfaceAlt;
 
     const bubbleBorder = isUser
-        ? `1px solid ${shieldActive
-            ? `${colors.accent}35`
-            : `${colors.danger}55`
-        }`
+        ? `1px solid ${
+              shieldActive
+                  ? `${colors.accent}35`
+                  : `${colors.danger}55`
+          }`
         : `1px solid ${colors.border}`;
 
     return (
         <div
+            onClick={onClick} // ✅ ADDED
             style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: isUser ? "flex-end" : "flex-start",
                 gap: "10px",
                 padding: "2px 0",
+                cursor: isInspecting ? "pointer" : "default", // ✅ UX
             }}
         >
             {/* LLM Avatar */}
@@ -109,13 +111,13 @@ export default function MessageBubble({
                     color: isUser
                         ? shieldActive
                             ? theme === "dark"
-                                ?  colors.accentText   
+                                ? colors.accentText
                                 : colors.textPrimary
                             : colors.danger
                         : colors.textPrimary,
                     padding: "16px 20px",
                     borderRadius: "18px",
-                    border: `1px solid ${bubbleBorder}`,
+                    border: `${bubbleBorder}`,
                     maxWidth: "680px",
                     minWidth: "120px",
                     fontSize: "14px",
@@ -152,7 +154,7 @@ export default function MessageBubble({
                     </div>
                 )}
 
-                {/* Loading indicator */}
+                {/* Loading */}
                 {loading ? (
                     <div style={{ display: "flex", gap: "6px" }}>
                         <span style={dotStyle} />
