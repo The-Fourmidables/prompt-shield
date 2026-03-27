@@ -1,4 +1,5 @@
-// Represents one full privacy-aware chat turn
+//types.ts
+// Represents one full privacy-aware chat turn 
 export type ChatTurn = {
   id: string;
 
