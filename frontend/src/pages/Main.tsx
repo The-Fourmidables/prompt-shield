@@ -1,3 +1,4 @@
+"main.tsx"
 import { theme as themeConfig } from "../theme/theme";
 import { sendMessage } from "../services/api";
 import { useState, useEffect } from "react";
