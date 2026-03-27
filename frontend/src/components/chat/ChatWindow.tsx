@@ -16,91 +16,54 @@ export default function ChatWindow({
   shieldActive: boolean;
   rightPanelStack: ("pipeline" | "vault")[];
 }) {
-  const colors = getComputedTheme(theme, shieldActive);
+  const colors         = getComputedTheme(theme, shieldActive);
   void rightPanelStack;
 
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef      = useRef<HTMLDivElement | null>(null);
   const isInitialState = turns.length === 0;
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [turns]);
 
+  const panelStyle = {
+    width:        "100%",
+    height:       "100%",
+    background:   colors.surface,
+    border:       `1px solid ${colors.border}`,
+    borderRadius: "20px",
+    boxShadow:    `0 0 0 1px ${colors.border}, 0 20px 60px ${colors.glow}, inset 0 0 40px ${colors.glow}`,
+    display:      "flex" as const,
+    flexDirection:"column" as const,
+    overflow:     "hidden" as const,
+  };
+
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        padding: "24px",
-        gap: "16px",
-        overflow: "hidden",
-      }}
-    >
-      {/* LEFT: ORIGINAL CHAT */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: inspectionMode ? "unset" : "1100px",
-            height: "100%",
-            background: colors.surface,
-            border: `1px solid ${colors.border}`,
-            borderRadius: "20px",
-            boxShadow: `
-              0 0 0 1px ${colors.border},
-              0 20px 60px ${colors.glow},
-              inset 0 0 40px ${colors.glow}
-            `,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-          }}
-        >
+    <div style={{ flex: 1, display: "flex", padding: "24px", gap: "16px", overflow: "hidden" }}>
+
+      {/* ── LEFT: Original / rehydrated chat ── */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <div style={{ ...panelStyle, maxWidth: inspectionMode ? "unset" : "1100px" }}>
           <div
             ref={scrollRef}
             style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "32px",
-              display: "flex",
+              flex:          1,
+              overflowY:     "auto",
+              padding:       "32px",
+              display:       "flex",
               flexDirection: "column",
-              gap: "20px",
+              gap:           "20px",
             }}
           >
             {isInitialState ? (
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  color: colors.textSecondary,
-                }}
-              >
+              <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", color: colors.textSecondary }}>
                 Start chatting...
               </div>
             ) : (
               turns.map((turn) => (
-                <div
-                  key={turn.id}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                  }}
-                >
+                <div key={turn.id} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <MessageBubble
                     theme={theme}
                     role="user"
@@ -108,8 +71,8 @@ export default function ChatWindow({
                     attachments={turn.attachments}
                     isInspecting={false}
                     shieldActive={turn.shieldActive ?? shieldActive}
+                    secretTypes={turn.secretTypes}   // ← NEW
                   />
-
                   <MessageBubble
                     theme={theme}
                     role="llm"
@@ -125,74 +88,41 @@ export default function ChatWindow({
         </div>
       </div>
 
-      {/* RIGHT: AI VIEW */}
+      {/* ── RIGHT: AI VIEW (masked) ── */}
       {inspectionMode && (
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: colors.surface,
-              border: `1px solid ${colors.border}`,
-              borderRadius: "20px",
-              boxShadow: `
-                0 0 0 1px ${colors.border},
-                0 20px 60px ${colors.glow},
-                inset 0 0 40px ${colors.glow}
-              `,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-            }}
-          >
-            {/* HEADER */}
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div style={panelStyle}>
             <div
               style={{
-                padding: "16px 24px",
+                padding:      "16px 24px",
                 borderBottom: `1px solid ${colors.border}`,
-                color: colors.accent,
-                fontWeight: 600,
-                letterSpacing: "1px",
+                color:        colors.accent,
+                fontWeight:   600,
+                letterSpacing:"1px",
               }}
             >
               AI VIEW
             </div>
-
-            {/* CONTENT */}
             <div
               style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "32px",
-                display: "flex",
+                flex:          1,
+                overflowY:     "auto",
+                padding:       "32px",
+                display:       "flex",
                 flexDirection: "column",
-                gap: "20px",
+                gap:           "20px",
               }}
             >
               {turns.map((turn) => (
-                <div
-                  key={turn.id}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                  }}
-                >
+                <div key={turn.id} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <MessageBubble
                     theme={theme}
                     role="user"
                     originalText={turn.user.masked || "—"}
                     isInspecting={false}
                     shieldActive={true}
+                    // No secretTypes in AI VIEW — badges belong on the real prompt side
                   />
-
                   <MessageBubble
                     theme={theme}
                     role="llm"

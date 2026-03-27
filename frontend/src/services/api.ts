@@ -5,8 +5,9 @@ export interface ChatResponse {
   masked_reply: string;
   masked_prompt: string;
   vault_map: Record<string, string>;
-  stage: string; // now comes from streaming payload
+  stage: string;
   shield_active: boolean;
+  secret_types: string[];   // ← NEW: ["OpenAI key", "Postgres URI", ...]
 }
 
 const BASE_URL = "http://localhost:8000";
@@ -15,17 +16,17 @@ export async function sendMessage(
   messages: { role: string; content: string }[],
   shieldActive: boolean,
   onStageUpdate: (stage: string) => void,
-  persistentVault: Record<string, string>,   // 🔥 NEW
-  file?: File
+  persistentVault: Record<string, string>,
+  file?: File,
 ): Promise<ChatResponse> {
 
-  // ── FILE UPLOAD (still normal JSON for now) ──
+  // ── FILE UPLOAD ──────────────────────────────────────────────────────────
   if (file) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append(
       "instruction",
-      messages[messages.length - 1]?.content || "Analyze this document."
+      messages[messages.length - 1]?.content || "Analyze this document.",
     );
 
     const response = await fetch(`${BASE_URL}/chat/upload`, {
@@ -41,31 +42,27 @@ export async function sendMessage(
     const json = await response.json();
     return {
       ...json,
-      stage: "COMPLETE",
+      stage:        "COMPLETE",
+      secret_types: json.secret_types ?? [],
     };
   }
 
-  // ── STREAMING CHAT ──
+  // ── STREAMING CHAT ───────────────────────────────────────────────────────
   const response = await fetch(`${BASE_URL}/chat/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       messages,
       shield_active: shieldActive,
-      vault: persistentVault,   // 🔥 SEND PREVIOUS VAULT
+      vault:         persistentVault,
     }),
   });
 
-  if (!response.body) {
-    throw new Error("No response body.");
-  }
+  if (!response.body) throw new Error("No response body.");
 
-  const reader = response.body.getReader();
+  const reader  = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
-
-  let buffer = "";
+  let buffer    = "";
   let finalData: any = null;
 
   while (true) {
@@ -73,33 +70,27 @@ export async function sendMessage(
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
-
     const parts = buffer.split("\n\n");
     buffer = parts.pop() || "";
 
     for (const part of parts) {
       if (part.startsWith("data: ")) {
         const jsonStr = part.replace("data: ", "").trim();
-        const parsed = JSON.parse(jsonStr);
-
-        if (parsed.stage) {
-          onStageUpdate(parsed.stage);
-        }
-
-        if (parsed.stage === "COMPLETE") {
-          finalData = parsed;
-        }
+        const parsed  = JSON.parse(jsonStr);
+        if (parsed.stage) onStageUpdate(parsed.stage);
+        if (parsed.stage === "COMPLETE") finalData = parsed;
       }
     }
   }
 
-  if (!finalData) {
-    throw new Error("No final data received.");
-  }
+  if (!finalData) throw new Error("No final data received.");
 
   if (finalData?.vault_map) {
-  Object.assign(persistentVault, finalData.vault_map);
-}
+    Object.assign(persistentVault, finalData.vault_map);
+  }
 
-return finalData;
+  return {
+    ...finalData,
+    secret_types: finalData.secret_types ?? [],
+  };
 }

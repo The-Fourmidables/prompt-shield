@@ -14,6 +14,15 @@ Masks:
   - JWT tokens
   - Private keys / certificates
   - Hardcoded credentials in any language
+
+CHANGES:
+  - POSTGRES_CONNECTION: greedy regex so full URI is caught before
+    PIIMasker can split it on the @ symbol
+  - MYSQL_CONNECTION / MONGODB_CONNECTION: same greedy fix applied
+  - INTERNAL_HOSTNAME: new pattern catches bare internal hostnames
+    like prod.internal.company.com that have no http:// prefix
+  - DB_PASSWORD_IN_URL: moved ABOVE the per-DB patterns so it acts
+    as a fallback for any scheme not explicitly listed
 """
 
 import re
@@ -142,6 +151,80 @@ CODE_PATTERNS = [
     },
 
     # ══════════════════════════════════════════════════════
+    # TOKENS & CERTIFICATES
+    # Run these BEFORE generic secrets so JWT is caught
+    # by its specific pattern, not a generic token rule.
+    # ══════════════════════════════════════════════════════
+    {
+        "name": "JWT_TOKEN",
+        "regex": r"eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+",
+        "prefix": "JWTToken",
+        "type": "SECRET",
+    },
+    {
+        "name": "PRIVATE_KEY_BLOCK",
+        "regex": r"-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]*?-----END (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----",
+        "prefix": "PrivateKeyBlock",
+        "type": "SECRET",
+        "flags": re.DOTALL,
+    },
+    {
+        "name": "CERTIFICATE_BLOCK",
+        "regex": r"-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----",
+        "prefix": "Certificate",
+        "type": "SECRET",
+        "flags": re.DOTALL,
+    },
+
+    # ══════════════════════════════════════════════════════
+    # DATABASE CONNECTION STRINGS
+    # IMPORTANT: Use greedy [^\s\"']+ so the ENTIRE URI is
+    # captured as one token before PIIMasker can split it.
+    # ══════════════════════════════════════════════════════
+    {
+        "name": "MYSQL_CONNECTION",
+        # FIX: greedy match — swallows full URI including user:pass@host
+        "regex": r"mysql(\+\w+)?://[^\s\"'<>]+",
+        "prefix": "MySQLConn",
+        "type": "DB_CREDENTIAL",
+    },
+    {
+        "name": "POSTGRES_CONNECTION",
+        # FIX: greedy match — was r"postgres(ql)?://([^:]+):([^@]+)@([^/\s]+)/(\S+)"
+        # which required exact structure; now catches any postgres:// URI whole
+        "regex": r"postgres(ql)?://[^\s\"'<>]+",
+        "prefix": "PostgresConn",
+        "type": "DB_CREDENTIAL",
+    },
+    {
+        "name": "MONGODB_CONNECTION",
+        # FIX: greedy match — same reason as above
+        "regex": r"mongodb(\+srv)?://[^\s\"'<>]+",
+        "prefix": "MongoConn",
+        "type": "DB_CREDENTIAL",
+    },
+    {
+        "name": "REDIS_CONNECTION",
+        "regex": r"redis://[^\s\"'<>]+",
+        "prefix": "RedisConn",
+        "type": "DB_CREDENTIAL",
+    },
+    {
+        "name": "MSSQL_CONNECTION",
+        "regex": r"(?i)(Server|Data Source)=[^;]+;(Database|Initial Catalog)=[^;]+;(User Id|UID)=[^;]+;Password=[^;]+;?",
+        "prefix": "MSSQLConn",
+        "type": "DB_CREDENTIAL",
+    },
+    {
+        "name": "DB_PASSWORD_IN_URL",
+        # Fallback: catches password in any scheme://user:PASS@host not listed above
+        "regex": r"://([^:]+):([^@\s]{4,})@",
+        "prefix": "DBPassword",
+        "type": "DB_CREDENTIAL",
+        "group": 2,
+    },
+
+    # ══════════════════════════════════════════════════════
     # GENERIC SECRETS IN CODE (all languages)
     # ══════════════════════════════════════════════════════
     {
@@ -188,75 +271,6 @@ CODE_PATTERNS = [
     },
 
     # ══════════════════════════════════════════════════════
-    # DATABASE CONNECTION STRINGS
-    # ══════════════════════════════════════════════════════
-    {
-        "name": "MYSQL_CONNECTION",
-        # mysql://user:password@host:port/db
-        "regex": r"mysql(\+\w+)?://([^:]+):([^@]+)@([^/\s]+)/(\S+)",
-        "prefix": "MySQLConn",
-        "type": "DB_CREDENTIAL",
-    },
-    {
-        "name": "POSTGRES_CONNECTION",
-        "regex": r"postgres(ql)?://([^:]+):([^@]+)@([^/\s]+)/(\S+)",
-        "prefix": "PostgresConn",
-        "type": "DB_CREDENTIAL",
-    },
-    {
-        "name": "MONGODB_CONNECTION",
-        "regex": r"mongodb(\+srv)?://([^:]+):([^@]+)@([^/\s]+)(/\S*)?",
-        "prefix": "MongoConn",
-        "type": "DB_CREDENTIAL",
-    },
-    {
-        "name": "REDIS_CONNECTION",
-        "regex": r"redis://(:([^@]+)@)?([^/\s]+)(:\d+)?(/\d+)?",
-        "prefix": "RedisConn",
-        "type": "DB_CREDENTIAL",
-    },
-    {
-        "name": "MSSQL_CONNECTION",
-        "regex": r"(?i)(Server|Data Source)=[^;]+;(Database|Initial Catalog)=[^;]+;(User Id|UID)=[^;]+;Password=[^;]+;?",
-        "prefix": "MSSQLConn",
-        "type": "DB_CREDENTIAL",
-    },
-    {
-        "name": "DB_PASSWORD_IN_URL",
-        # Any password in a connection URL
-        "regex": r"://([^:]+):([^@\s]{4,})@",
-        "prefix": "DBPassword",
-        "type": "DB_CREDENTIAL",
-        "group": 2,
-    },
-
-
-
-    # ══════════════════════════════════════════════════════
-    # TOKENS & CERTIFICATES
-    # ══════════════════════════════════════════════════════
-    {
-        "name": "JWT_TOKEN",
-        "regex": r"eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+",
-        "prefix": "JWTToken",
-        "type": "SECRET",
-    },
-    {
-        "name": "PRIVATE_KEY_BLOCK",
-        "regex": r"-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]*?-----END (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----",
-        "prefix": "PrivateKeyBlock",
-        "type": "SECRET",
-        "flags": re.DOTALL,
-    },
-    {
-        "name": "CERTIFICATE_BLOCK",
-        "regex": r"-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----",
-        "prefix": "Certificate",
-        "type": "SECRET",
-        "flags": re.DOTALL,
-    },
-
-    # ══════════════════════════════════════════════════════
     # INTERNAL / PRIVATE NETWORK INFO
     # ══════════════════════════════════════════════════════
     {
@@ -268,9 +282,18 @@ CODE_PATTERNS = [
     },
     {
         "name": "INTERNAL_URL",
-        # Internal hostnames like http://internal-api.company.com
+        # Internal hostnames with http:// prefix
         "regex": r"https?://(internal|intranet|private|corp|local|dev|staging|preprod)[\.\-][A-Za-z0-9\.\-]+",
         "prefix": "InternalURL",
+        "type": "NETWORK",
+        "flags": re.IGNORECASE,
+    },
+    {
+        # NEW: catches bare internal hostnames WITHOUT http:// prefix
+        # e.g. prod.internal.company.com:5432 or fraud-api.internal:8080
+        "name": "INTERNAL_HOSTNAME",
+        "regex": r"\b[\w\-]+\.(internal|corp|intranet|private|local)(:\d+)?(/[\w/.\-]*)?\b",
+        "prefix": "InternalHost",
         "type": "NETWORK",
         "flags": re.IGNORECASE,
     },
@@ -310,6 +333,8 @@ CODE_PATTERNS = [
 
     # ══════════════════════════════════════════════════════
     # ENVIRONMENT VARIABLES (.env files)
+    # Run LAST — broad pattern, catches anything with
+    # secret/key/token/password in the variable name.
     # ══════════════════════════════════════════════════════
     {
         "name": "ENV_SECRET",
