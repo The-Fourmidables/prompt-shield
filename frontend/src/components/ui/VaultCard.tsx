@@ -14,7 +14,6 @@ export default function VaultCard({
   shieldActive,
 }: Props) {
   const colors = theme[themeMode];
-  const hasMappings = !!vaultMap && Object.keys(vaultMap).length > 0;
 
   return (
     <div
@@ -67,7 +66,7 @@ export default function VaultCard({
         )}
       </h3>
 
-      {!hasMappings && (
+      {!hasTurns && (
         <div
           style={{
             flex: 1,
@@ -79,11 +78,27 @@ export default function VaultCard({
             opacity: 0.7,
           }}
         >
-          {hasTurns ? "No sensitive entities detected." : "Vault is empty. Waiting for masked entities..."}
+          Vault is empty. Waiting for masked entities...
         </div>
       )}
 
-      {hasMappings && vaultMap && (
+      {hasTurns && !vaultMap && (
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: colors.textSecondary,
+            fontSize: "13px",
+            opacity: 0.7,
+          }}
+        >
+          No sensitive entities detected.
+        </div>
+      )}
+
+      {hasTurns && vaultMap && (
         <div
           style={{
             flex: 1,

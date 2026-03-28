@@ -30,6 +30,7 @@ SYSTEM_PROMPT = (
 
 class LLMProxy:
 
+    # ── Primary method: takes a messages list (used by chat_adapter) ──────────
     async def send_messages(
         self,
         messages: list,
@@ -49,16 +50,20 @@ class LLMProxy:
             response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
         return self._parse(response)
 
+    # ── Convenience method: takes a single prompt string (used by main.py) ────
+    # main.py calls:  await llm_proxy.send(masked_prompt, model)
     async def send(
         self,
         prompt: str,
         model: str = "openai/gpt-3.5-turbo",
     ) -> str:
+        """Async single-prompt wrapper — converts string to messages list."""
         return await self.send_messages(
             [{"role": "user", "content": prompt}],
             model=model,
         )
 
+    # ── Synchronous version (for non-async contexts / tests) ─────────────────
     def send_sync(
         self,
         masked_prompt: str,
@@ -78,6 +83,7 @@ class LLMProxy:
             response = client.post(OPENROUTER_URL, headers=headers, json=payload)
         return self._parse(response)
 
+    # ── Shared helpers ────────────────────────────────────────────────────────
     def _headers(self) -> dict:
         return {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
