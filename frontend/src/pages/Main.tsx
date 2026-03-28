@@ -1,4 +1,3 @@
-"main.tsx"
 import { theme as themeConfig } from "../theme/theme";
 import { sendMessage } from "../services/api";
 import { useState, useEffect } from "react";
@@ -19,8 +18,28 @@ export default function Main({
   theme: "dark" | "light";
   setTheme: React.Dispatch<React.SetStateAction<"dark" | "light">>;
 }) {
-  const [turns, setTurns]                   = useState<ChatTurn[]>([]);
-  const [persistentVault, setPersistentVault] = useState<Record<string, string>>({});
+  const [turns, setTurns] = useState<ChatTurn[]>(() => {
+    const raw = localStorage.getItem("ps_turns");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed as ChatTurn[];
+    } catch {
+      return [];
+    }
+  });
+  const [persistentVault, setPersistentVault] = useState<Record<string, string>>(() => {
+    const raw = localStorage.getItem("ps_vault");
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return {};
+      return parsed as Record<string, string>;
+    } catch {
+      return {};
+    }
+  });
   const MAX_VAULT_TURNS                     = 10;
   const [pipelineStage, setPipelineStage]   = useState<string>("IDLE");
 
@@ -47,17 +66,23 @@ export default function Main({
   }
 
   useEffect(() => {
-    if (turns.length === 0) setPipelineStage("IDLE");
-  }, [turns]);
-
-  useEffect(() => {
     localStorage.setItem("ps_shield", String(shieldActive));
   }, [shieldActive]);
+
+  useEffect(() => {
+    localStorage.setItem("ps_vault", JSON.stringify(persistentVault));
+  }, [persistentVault]);
+
+  useEffect(() => {
+    localStorage.setItem("ps_turns", JSON.stringify(turns));
+  }, [turns]);
 
   const handleClearChat = () => {
     setTurns([]);
     setPipelineStage("IDLE");
     setPersistentVault({});
+    localStorage.removeItem("ps_vault");
+    localStorage.removeItem("ps_turns");
   };
 
   const handleSend = async (text: string, attachments?: File[]) => {

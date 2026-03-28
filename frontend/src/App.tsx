@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Main from "./pages/Main";
+import Dashboard from "./pages/Dashboard";
 
 function AppWrapper() {
   const navigate = useNavigate();
@@ -23,10 +24,6 @@ function AppWrapper() {
   useEffect(() => {
     localStorage.setItem("ps_theme", theme);
   }, [theme]);
-
-  useEffect(() => {
-    navigate("/");
-  }, []);
 
   const startApp = () => {
     setIsTransitioning(true);
@@ -50,6 +47,10 @@ function AppWrapper() {
         <Route
           path="/app"
           element={<Main theme={theme} setTheme={setTheme} />}
+        />
+        <Route
+          path="/dashboard"
+          element={<Dashboard theme={theme} setTheme={setTheme} />}
         />
       </Routes>
     </div>

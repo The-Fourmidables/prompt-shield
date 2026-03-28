@@ -12,6 +12,11 @@ export interface ChatResponse {
 
 const BASE_URL = "http://localhost:8000";
 
+type StreamEvent = {
+  stage?: string;
+  error?: string;
+} & Partial<ChatResponse>;
+
 export async function sendMessage(
   messages: { role: string; content: string }[],
   shieldActive: boolean,
@@ -39,7 +44,14 @@ export async function sendMessage(
       throw new Error(`Backend Error: ${response.status} - ${text}`);
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      reply: string;
+      masked_reply: string;
+      masked_prompt: string;
+      vault_map: Record<string, string>;
+      shield_active: boolean;
+      secret_types?: string[];
+    };
     return {
       ...json,
       stage:        "COMPLETE",
@@ -63,7 +75,7 @@ export async function sendMessage(
   const reader  = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer    = "";
-  let finalData: any = null;
+  let finalData: ChatResponse | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -76,16 +88,17 @@ export async function sendMessage(
     for (const part of parts) {
       if (part.startsWith("data: ")) {
         const jsonStr = part.replace("data: ", "").trim();
-        const parsed  = JSON.parse(jsonStr);
+        const parsed = JSON.parse(jsonStr) as StreamEvent;
         if (parsed.stage) onStageUpdate(parsed.stage);
-        if (parsed.stage === "COMPLETE") finalData = parsed;
+        if (parsed.error) throw new Error(parsed.error);
+        if (parsed.stage === "COMPLETE") finalData = parsed as ChatResponse;
       }
     }
   }
 
   if (!finalData) throw new Error("No final data received.");
 
-  if (finalData?.vault_map) {
+  if (finalData.vault_map) {
     Object.assign(persistentVault, finalData.vault_map);
   }
 

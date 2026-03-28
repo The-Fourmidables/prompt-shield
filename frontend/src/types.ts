@@ -18,4 +18,5 @@ export type ChatTurn = {
   // ✅ ADD THESE (fixes your errors)
   shieldActive?: boolean;
   secretTypes?: string[];
+  vaultMap?: Record<string, string>;
 };

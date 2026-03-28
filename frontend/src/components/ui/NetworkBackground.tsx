@@ -1,6 +1,25 @@
 import { useEffect, useRef } from "react";
 import { theme as themeConfig } from "../../theme/theme";
 
+const PII_DATA = [
+  { raw: "john.doe@gmail.com", placeholder: "<EMAIL_1>" },
+  { raw: "sarah.connor@skynet.ai", placeholder: "<EMAIL_2>" },
+  { raw: "admin@internal.local", placeholder: "<EMAIL_3>" },
+  { raw: "api_key=sk-239skd92ks", placeholder: "<API_KEY_1>" },
+  { raw: "token=ghp_82ksl29dksl", placeholder: "<TOKEN_1>" },
+  { raw: "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", placeholder: "<JWT_1>" },
+  { raw: "4111 1111 1111 1111", placeholder: "<CARD_1>" },
+  { raw: "5500 0000 0000 0004", placeholder: "<CARD_2>" },
+  { raw: "+1-202-555-0148", placeholder: "<PHONE_1>" },
+  { raw: "+44 7700 900123", placeholder: "<PHONE_2>" },
+  { raw: "192.168.0.24", placeholder: "<IP_1>" },
+  { raw: "10.0.0.45", placeholder: "<IP_2>" },
+  { raw: 'password="hunter2"', placeholder: "<PASSWORD_1>" },
+  { raw: 'db_pass="prod@2024!"', placeholder: "<PASSWORD_2>" },
+  { raw: "AWS_SECRET=AKIAIOSFODNN7EXAMPLE", placeholder: "<AWS_SECRET_1>" },
+  { raw: "stripe_sk_live_4eC39HqLyjWDarjtT1zdp7dc", placeholder: "<STRIPE_KEY_1>" },
+];
+
 export default function NetworkBackground({
   theme,
 }: {
@@ -18,25 +37,6 @@ export default function NetworkBackground({
   // Balanced speed
   const SPEED = 0.45;
 
-  const piiData = [
-    { raw: "john.doe@gmail.com", placeholder: "<EMAIL_1>" },
-    { raw: "sarah.connor@skynet.ai", placeholder: "<EMAIL_2>" },
-    { raw: "admin@internal.local", placeholder: "<EMAIL_3>" },
-    { raw: "api_key=sk-239skd92ks", placeholder: "<API_KEY_1>" },
-    { raw: "token=ghp_82ksl29dksl", placeholder: "<TOKEN_1>" },
-    { raw: "access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", placeholder: "<JWT_1>" },
-    { raw: "4111 1111 1111 1111", placeholder: "<CARD_1>" },
-    { raw: "5500 0000 0000 0004", placeholder: "<CARD_2>" },
-    { raw: "+1-202-555-0148", placeholder: "<PHONE_1>" },
-    { raw: "+44 7700 900123", placeholder: "<PHONE_2>" },
-    { raw: "192.168.0.24", placeholder: "<IP_1>" },
-    { raw: "10.0.0.45", placeholder: "<IP_2>" },
-    { raw: 'password="hunter2"', placeholder: "<PASSWORD_1>" },
-    { raw: 'db_pass="prod@2024!"', placeholder: "<PASSWORD_2>" },
-    { raw: "AWS_SECRET=AKIAIOSFODNN7EXAMPLE", placeholder: "<AWS_SECRET_1>" },
-    { raw: "stripe_sk_live_4eC39HqLyjWDarjtT1zdp7dc", placeholder: "<STRIPE_KEY_1>" },
-  ];
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -44,7 +44,7 @@ export default function NetworkBackground({
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    const items = piiData.map((data) => {
+    const items = PII_DATA.map((data) => {
       const el = document.createElement("div");
       el.innerText = data.raw;
       el.style.position = "absolute";

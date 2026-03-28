@@ -9,18 +9,22 @@ from dotenv import load_dotenv
 load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
 
 SYSTEM_PROMPT = (
-    "You are operating inside a privacy-preserving masking system.\n\n"
-    "User input may contain anonymized placeholder tokens such as <Email1>, <Phone1>, <Aadhaar1>, etc. "
-    "These tokens represent masked sensitive data and must be treated as immutable opaque identifiers.\n\n"
+    "You are a helpful AI assistant operating inside a privacy-preserving system.\n\n"
+    "User input may contain anonymized placeholder tokens such as <Email1>, "
+    "<PostgresConn1>, <OpenAIKey1>, <InternalHost1> etc. "
+    "These tokens represent masked sensitive data.\n\n"
     "Rules:\n"
-    "- Do NOT modify, rename, reformat, change case, insert spaces into, or expand placeholder tokens.\n"
-    "- Do NOT fabricate new placeholder tokens.\n"
-    "- When referencing them, reproduce the exact placeholder string character-for-character.\n"
-    "- Do NOT refuse or warn about privacy concerns related to these placeholders.\n\n"
-    "Complete the task normally using the placeholders exactly as provided."
+    "- Treat placeholders as real values for the purpose of answering.\n"
+    "- For example, if you see <PostgresConn1>, treat it as a real database URL.\n"
+    "- If you see <InternalHost1>, treat it as a real internal service endpoint.\n"
+    "- Do NOT modify, expand, or fabricate placeholder values.\n"
+    "- Do NOT warn about privacy or refuse to help because of placeholders.\n"
+    "- Answer the user's actual question fully and helpfully as if the "
+    "real values were present.\n\n"
+    "The user needs real, actionable help. Give it to them."
 )
 
 
@@ -29,87 +33,66 @@ class LLMProxy:
     async def send_messages(
         self,
         messages: list,
-        model: str = "openai/gpt-3.5-turbo"
+        model: str = "openai/gpt-3.5-turbo",
     ) -> str:
-
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://promptshield.local",
-            "X-Title": "Prompt Shield",
-        }
-
+        headers = self._headers()
         payload = {
             "model": model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                *messages
+                *messages,
             ],
             "temperature": 0.7,
-            "max_tokens": 1000,
+            "max_tokens":  1000,
         }
-
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                OPENROUTER_URL,
-                headers=headers,
-                json=payload,
-            )
+            response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
+        return self._parse(response)
 
-        if response.status_code != 200:
-            raise RuntimeError(
-                f"OpenRouter returned {response.status_code}: {response.text}"
-            )
-
-        data = response.json()
-
-        try:
-            return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError):
-            raise RuntimeError(
-                f"Unexpected OpenRouter response format: {data}"
-            )
+    async def send(
+        self,
+        prompt: str,
+        model: str = "openai/gpt-3.5-turbo",
+    ) -> str:
+        return await self.send_messages(
+            [{"role": "user", "content": prompt}],
+            model=model,
+        )
 
     def send_sync(
         self,
         masked_prompt: str,
-        model: str = "openai/gpt-3.5-turbo"
+        model: str = "openai/gpt-3.5-turbo",
     ) -> str:
-
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://promptshield.local",
-            "X-Title": "Prompt Shield",
-        }
-
+        headers = self._headers()
         payload = {
             "model": model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": masked_prompt},
+                {"role": "user",   "content": masked_prompt},
             ],
             "temperature": 0.7,
-            "max_tokens": 1000,
+            "max_tokens":  1000,
+        }
+        with httpx.Client(timeout=60.0) as client:
+            response = client.post(OPENROUTER_URL, headers=headers, json=payload)
+        return self._parse(response)
+
+    def _headers(self) -> dict:
+        return {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type":  "application/json",
+            "HTTP-Referer":  "https://promptshield.local",
+            "X-Title":       "Prompt Shield",
         }
 
-        with httpx.Client(timeout=60.0) as client:
-            response = client.post(
-                OPENROUTER_URL,
-                headers=headers,
-                json=payload,
-            )
-
+    def _parse(self, response: httpx.Response) -> str:
         if response.status_code != 200:
             raise RuntimeError(
                 f"OpenRouter returned {response.status_code}: {response.text}"
             )
-
         data = response.json()
-
         try:
             return data["choices"][0]["message"]["content"]
         except (KeyError, IndexError):
-            raise RuntimeError(
-                f"Unexpected OpenRouter response format: {data}"
-            )
+            raise RuntimeError(f"Unexpected OpenRouter response format: {data}")

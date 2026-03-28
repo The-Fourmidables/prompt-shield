@@ -1,4 +1,4 @@
-// import { theme } from "../../theme/theme";
+import type { ThemeColors } from "../../theme/theme";
 
 const steps = [
   "Detecting Sensitive Entities",
@@ -20,7 +20,7 @@ interface Props {
   stage: string;
   hasVault: boolean;
   compact?: boolean;
-  colors: any;
+  colors: ThemeColors;
 }
 
 export default function ProcessingPipeline({

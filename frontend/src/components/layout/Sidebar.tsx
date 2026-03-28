@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import type { ThemeColors } from "../../theme/theme";
 
 export default function Sidebar({
   theme,
@@ -17,8 +19,9 @@ export default function Sidebar({
   >;
   inspectionMode: boolean;
   setInspectionMode: React.Dispatch<React.SetStateAction<boolean>>;
-  colors: any;
+  colors: ThemeColors;
 }) {
+  const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(true);
 
@@ -185,6 +188,22 @@ export default function Sidebar({
           </svg>
 
           {!collapsed && <span>Pipeline</span>}
+        </button>
+      </Tooltip>
+
+      <Tooltip label="Impact Dashboard">
+        <button
+          onClick={() => navigate("/dashboard")}
+          style={buttonStyle(false)}
+        >
+          <svg viewBox="0 0 24 24" style={iconStyle}>
+            <path d="M4 19V5" />
+            <path d="M8 17V9" />
+            <path d="M12 15V7" />
+            <path d="M16 17V11" />
+            <path d="M20 15V9" />
+          </svg>
+          {!collapsed && <span>Impact</span>}
         </button>
       </Tooltip>
 

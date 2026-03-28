@@ -14,17 +14,17 @@ interface PreviewRule {
 const PREVIEW_RULES: PreviewRule[] = [
   // Provider API keys
   { id: "openai",     label: "OpenAI key",     pattern: /sk-(?:proj-)?[A-Za-z0-9]{20,}/g },
-  { id: "anthropic",  label: "Anthropic key",  pattern: /sk-ant-[A-Za-z0-9\-_]{20,}/g },
-  { id: "openrouter", label: "OpenRouter key", pattern: /sk-or-[A-Za-z0-9\-_]{20,}/g },
+  { id: "anthropic",  label: "Anthropic key",  pattern: /sk-ant-[A-Za-z0-9_-]{20,}/g },
+  { id: "openrouter", label: "OpenRouter key", pattern: /sk-or-[A-Za-z0-9_-]{20,}/g },
   { id: "stripe",     label: "Stripe key",     pattern: /(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{20,}/g },
-  { id: "google",     label: "Google API key", pattern: /AIza[0-9A-Za-z\-_]{35}/g },
+  { id: "google",     label: "Google API key", pattern: /AIza[0-9A-Za-z_-]{35}/g },
   { id: "aws_key",    label: "AWS access key", pattern: /AKIA[0-9A-Z]{16}/g },
   { id: "github",     label: "GitHub token",   pattern: /ghp_[A-Za-z0-9]{36}/g },
-  { id: "sendgrid",   label: "SendGrid key",   pattern: /SG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}/g },
-  { id: "slack",      label: "Slack token",    pattern: /xox[baprs]-[A-Za-z0-9\-]{10,}/g },
+  { id: "sendgrid",   label: "SendGrid key",   pattern: /SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}/g },
+  { id: "slack",      label: "Slack token",    pattern: /xox[baprs]-[A-Za-z0-9-]{10,}/g },
   { id: "hf",         label: "HuggingFace token", pattern: /hf_[A-Za-z0-9]{30,}/g },
   // JWT
-  { id: "jwt",        label: "JWT token",      pattern: /eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g },
+  { id: "jwt",        label: "JWT token",      pattern: /eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g },
   // Database URIs
   { id: "postgres",   label: "Postgres URI",   pattern: /postgres(?:ql)?:\/\/[^\s"'`<>)[\]]+/gi },
   { id: "mysql",      label: "MySQL URI",      pattern: /mysql(?:\+\w+)?:\/\/[^\s"'`<>)[\]]+/gi },
@@ -32,12 +32,12 @@ const PREVIEW_RULES: PreviewRule[] = [
   { id: "redis",      label: "Redis URI",      pattern: /redis:\/\/[^\s"'`<>)[\]]+/gi },
   // Network
   { id: "priv_ip",    label: "Internal IP",    pattern: /\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(?::\d+)?\b/g },
-  { id: "int_url",    label: "Internal URL",   pattern: /https?:\/\/[a-z0-9._\-]*\.(?:internal|corp|local|intranet|lan)(?:\/[^\s"'`]*)*/gi },
+  { id: "int_url",    label: "Internal URL",   pattern: /https?:\/\/[a-z0-9._-]*\.(?:internal|corp|local|intranet|lan)(?:\/[^\s"'`]*)*/gi },
   // Generic secrets
   { id: "password",   label: "Password",       pattern: /(?:password|passwd|pwd)\s*[=:]\s*["']([^"']{4,})["']/gi },
   { id: "env_secret", label: "Env secret",     pattern: /\b[A-Z][A-Z0-9_]{3,}(?:KEY|SECRET|TOKEN|PASSWORD|PASS|PWD|AUTH|CRED)[A-Z0-9_]*\s*=\s*[^\s\n"'`]{6,}/g },
   // PII
-  { id: "email",      label: "Email",          pattern: /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g },
+  { id: "email",      label: "Email",          pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g },
   { id: "privkey",    label: "Private key",    pattern: /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/g },
 ];
 
@@ -110,7 +110,7 @@ export default function ChatInput({
 }: {
   theme: "dark" | "light";
   shieldActive: boolean;
-  onSend: (text: string, attachments?: any[]) => void;
+  onSend: (text: string, attachments?: File[]) => void;
   onClear: () => void;
 }) {
   const colors = themeConfig[theme];
