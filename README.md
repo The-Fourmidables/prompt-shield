@@ -11,6 +11,7 @@ PromptShield acts as a security firewall between users and GPT/LLM APIs, ensurin
 Users frequently paste real-world information into AI tools without realizing the risks.
 
 Sensitive data commonly exposed:
+- Code Secrets
 - Names
 - Emails
 - Phone numbers
