@@ -1,20 +1,10 @@
 """
-ocr_processor.py  -  OCR Pre-Processing Layer
+ocr_processor.py  -  OCR Pre-Processing Layer (PRODUCTION SAFE)
 
-Extracts text from:
-  - Images  : PNG, JPG, JPEG, BMP, TIFF, WEBP
-  - PDFs    : Digital (text-based) + Scanned (image-based via OCR)
-
-Requirements:
-  pip install pytesseract pdf2image pypdf Pillow
-  
-  Also install Tesseract OCR engine:
-  Windows : https://github.com/UB-Mannheim/tesseract/wiki
-            Download installer -> install -> add to PATH
-            Default path: C:/Program Files/Tesseract-OCR/tesseract.exe
-
-  After installing Tesseract on Windows, set the path below:
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+FIXED:
+  - Safe OCR wrapper (prevents crashes)
+  - Image parsing protected
+  - OCR failures return empty text instead of killing API
 """
 
 import os
@@ -26,7 +16,7 @@ try:
     import pytesseract
     from PIL import Image
 
-    # Windows: set Tesseract path explicitly
+    # Windows: set Tesseract path explicitly (ignored in Linux/Render)
     tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     if os.path.exists(tesseract_path):
         pytesseract.pytesseract.tesseract_cmd = tesseract_path
@@ -57,40 +47,42 @@ SUPPORTED_IMAGE_TYPES = {
 SUPPORTED_PDF_TYPES = {"application/pdf"}
 
 
+# 🔴 SAFE OCR WRAPPER (CRITICAL)
+def safe_ocr(image):
+    try:
+        config = "--oem 3 --psm 6"
+        text = pytesseract.image_to_string(image, config=config, lang="eng")
+        return text.strip() if text and text.strip() else ""
+    except Exception as e:
+        print(f"OCR failed: {e}")
+        return ""
+
+
 class OCRProcessor:
 
     def extract_text_from_image(self, file_bytes: bytes, filename: str = "") -> Tuple[str, str]:
-        """
-        Extract text from an image file using Tesseract OCR.
-        Returns: (extracted_text, method_used)
-        """
         if not TESSERACT_AVAILABLE:
             raise RuntimeError(
                 "pytesseract or Pillow not installed.\n"
-                "Run: pip install pytesseract Pillow\n"
-                "Also install Tesseract: https://github.com/UB-Mannheim/tesseract/wiki"
+                "Run: pip install pytesseract Pillow"
             )
 
-        image = Image.open(io.BytesIO(file_bytes))
+        # 🔴 Protect image loading
+        try:
+            image = Image.open(io.BytesIO(file_bytes))
+        except Exception as e:
+            raise RuntimeError(f"Invalid image file: {str(e)}")
 
-        # Convert to RGB if needed (handles PNG with alpha, etc.)
+        # Normalize format
         if image.mode not in ("RGB", "L"):
             image = image.convert("RGB")
 
-        # OCR config: improve accuracy
-        config = "--oem 3 --psm 6"  # psm 6 = assume uniform block of text
-        text = pytesseract.image_to_string(image, config=config, lang="eng")
+        text = safe_ocr(image)
 
-        return text.strip(), "tesseract_ocr"
+        return text, "tesseract_ocr"
 
     def extract_text_from_pdf(self, file_bytes: bytes) -> Tuple[str, str]:
-        """
-        Extract text from PDF.
-        1. Try digital text extraction first (fast, accurate)
-        2. Fall back to OCR if PDF is scanned/image-based
-        Returns: (extracted_text, method_used)
-        """
-        # ── Method 1: Digital PDF text extraction ────────────────────────────
+        # ── Method 1: Digital PDF ────────────────────────────────────────────
         if PYPDF_AVAILABLE:
             try:
                 reader = PdfReader(io.BytesIO(file_bytes))
@@ -100,30 +92,29 @@ class OCRProcessor:
                     if page_text:
                         text += page_text + "\n\n"
 
-                # If we got meaningful text, return it
                 if len(text.strip()) > 50:
                     return text.strip(), "digital_pdf"
             except Exception:
                 pass
 
-        # ── Method 2: OCR for scanned PDFs ───────────────────────────────────
+        # ── Method 2: OCR scanned PDF ───────────────────────────────────────
         if PDF2IMAGE_AVAILABLE and TESSERACT_AVAILABLE:
             try:
                 images = convert_from_bytes(file_bytes, dpi=300)
                 text = ""
+
                 for i, image in enumerate(images):
-                    config = "--oem 3 --psm 6"
-                    page_text = pytesseract.image_to_string(image, config=config, lang="eng")
+                    page_text = safe_ocr(image)
                     text += f"[Page {i+1}]\n{page_text}\n\n"
+
                 return text.strip(), "ocr_scanned_pdf"
+
             except Exception as e:
                 raise RuntimeError(f"OCR failed on scanned PDF: {str(e)}")
 
         raise RuntimeError(
             "Cannot extract text from PDF.\n"
-            "Install: pip install pypdf pdf2image pytesseract\n"
-            "For scanned PDFs also install poppler:\n"
-            "  Windows: https://github.com/oschwartz10612/poppler-windows/releases"
+            "Install: pip install pypdf pdf2image pytesseract"
         )
 
     def is_supported(self, content_type: str) -> bool:
