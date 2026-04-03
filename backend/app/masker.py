@@ -8,8 +8,23 @@ from typing import Dict, Tuple, Optional
 
 try:
     from presidio_analyzer import AnalyzerEngine
+    from presidio_analyzer.nlp_engine import NlpEngineProvider
+
     PRESIDIO_AVAILABLE = True
-    _analyzer = AnalyzerEngine()
+
+    # ✅ FORCE SMALL MODEL (FIX)
+    configuration = {
+        "nlp_engine_name": "spacy",
+        "models": [
+            {"lang_code": "en", "model_name": "en_core_web_sm"}
+        ],
+    }
+
+    provider = NlpEngineProvider(nlp_configuration=configuration)
+    nlp_engine = provider.create_engine()
+
+    _analyzer = AnalyzerEngine(nlp_engine=nlp_engine)
+
 except ImportError:
     PRESIDIO_AVAILABLE = False
 
@@ -409,7 +424,6 @@ PATTERNS = [
     },
 ]
 
-
 _session_store: Dict[str, Dict[str, dict]] = {}
 _session_counters: Dict[str, Dict[str, int]] = {}
 
@@ -431,18 +445,15 @@ class PIIMasker:
         entity_map = _session_store[session_id]
         counters = _session_counters[session_id]
 
-        # Step 1: Regex FIRST (handles email, phone, card, etc.)
+        # Step 1: Regex FIRST
         text = self._regex_mask(text, entity_map, counters)
 
-        # Step 2: Presidio AFTER regex, only for PERSON and LOCATION
-        # (everything else already handled by regex above)
+        # Step 2: Presidio AFTER regex
         if PRESIDIO_AVAILABLE:
             text = self._presidio_mask(text, entity_map, counters)
 
         return text, entity_map, session_id
 
-    # Presidio only handles PERSON and LOCATION/ADDRESS
-    # All other entity types (EMAIL, PHONE, URL, etc.) are handled by regex
     PRESIDIO_ALLOWED_ENTITIES = {"PERSON", "LOCATION"}
 
     def _presidio_mask(self, text, entity_map, counters):
@@ -456,7 +467,6 @@ class PIIMasker:
             for r in results:
                 original = text[r.start:r.end]
 
-                # Skip if already masked by regex (placeholder like <Email1>)
                 if re.match(r"^<[A-Za-z]+\d+>$", original):
                     continue
 
@@ -489,7 +499,6 @@ class PIIMasker:
                     return m.group(0)
                 original = original.strip()
 
-                # Skip already-masked placeholders
                 if re.match(r"^<[A-Za-z]+\d+>$", original):
                     return m.group(0)
 
