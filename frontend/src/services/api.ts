@@ -10,7 +10,7 @@ export interface ChatResponse {
   secret_types: string[];   // ← NEW: ["OpenAI key", "Postgres URI", ...]
 }
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 type StreamEvent = {
   stage?: string;
