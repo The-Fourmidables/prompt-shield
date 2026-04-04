@@ -43,10 +43,10 @@ PATTERNS = [
     # NAME DETECTION - Context-aware (single + full names)
     {
         "name": "FULL_NAME",
-        "regex": r"(?i)(name\s*(is|:|\s))\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)",
+        "regex": r"(?i)\bname\s*(?:is|:)?\s*([A-Za-z]{2,}(?:\s+[A-Za-z]{2,})*)",
         "prefix": "Name",
         "type": "PII",
-        "group": 3,
+        "group": 1,
         "flags": re.IGNORECASE,
     },
     {
@@ -58,19 +58,23 @@ PATTERNS = [
     },
     {
         "name": "PATIENT_NAME",
-        "regex": r"(?i)(patient\s*(name)?\s*(is|:|\s))\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)",
+        "regex": r"(?i)\bpatient(?:'s)?\s+name\s*(?:is|:)?\s*([A-Za-z]{2,}(?:\s+[A-Za-z]{2,})*)",
         "prefix": "Name",
         "type": "PHI",
-        "group": 4,
+        "group": 1,
         "flags": re.IGNORECASE,
     },
     {
         "name": "DEAR_NAME",
-        "regex": r"(?i)\b(dear|hi|hello|hey)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b",
+        "regex": r"(?i)\b(dear|hi|hello|hey)\s+([A-Za-z]{2,}(?:\s+[A-Za-z]{2,})?)\b",
         "prefix": "Name",
         "type": "PII",
         "group": 2,
         "flags": re.IGNORECASE,
+        "skip_words": {
+            "i", "im", "i'm", "me", "my", "mine", "we", "us", "our", "ours", "you", "your", "yours",
+            "there", "here", "all", "everyone", "everybody", "team", "guys", "hello", "hi", "hey", "dear",
+        },
     },
     {
         "name": "SIGNED_BY",
@@ -469,6 +473,10 @@ class PIIMasker:
 
                 if re.match(r"^<[A-Za-z]+\d+>$", original):
                     continue
+                if r.start > 0 and r.end < len(text) and text[r.start - 1] == "<" and text[r.end] == ">":
+                    continue
+                if "<" in original or ">" in original:
+                    continue
 
                 if original in entity_map:
                     placeholder = entity_map[original]["placeholder"]
@@ -491,6 +499,7 @@ class PIIMasker:
         for pattern in PATTERNS:
             flags = pattern.get("flags", 0)
             group = pattern.get("group", 0)
+            skip_words = pattern.get("skip_words")
             compiled = re.compile(pattern["regex"], flags)
 
             def replacer(m, prefix=pattern["prefix"], ptype=pattern["type"], g=group):
@@ -498,6 +507,13 @@ class PIIMasker:
                 if not original or original.strip() == "":
                     return m.group(0)
                 original = original.strip()
+                if skip_words:
+                    lowered = original.lower()
+                    if lowered in skip_words:
+                        return m.group(0)
+                    parts = re.split(r"\s+", lowered)
+                    if any(p in skip_words for p in parts):
+                        return m.group(0)
 
                 if re.match(r"^<[A-Za-z]+\d+>$", original):
                     return m.group(0)

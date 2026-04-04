@@ -18,17 +18,7 @@ export default function Main({
   theme: "dark" | "light";
   setTheme: React.Dispatch<React.SetStateAction<"dark" | "light">>;
 }) {
-  const [turns, setTurns] = useState<ChatTurn[]>(() => {
-    const raw = localStorage.getItem("ps_turns");
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed as ChatTurn[];
-    } catch {
-      return [];
-    }
-  });
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [persistentVault, setPersistentVault] = useState<Record<string, string>>(() => {
     const raw = localStorage.getItem("ps_vault");
     if (!raw) return {};
@@ -72,10 +62,6 @@ export default function Main({
   useEffect(() => {
     localStorage.setItem("ps_vault", JSON.stringify(persistentVault));
   }, [persistentVault]);
-
-  useEffect(() => {
-    localStorage.setItem("ps_turns", JSON.stringify(turns));
-  }, [turns]);
 
   const handleClearChat = () => {
     setTurns([]);
