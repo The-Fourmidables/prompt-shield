@@ -118,6 +118,8 @@ export default function ChatWindow({
                     isInspecting={false}
                     shieldActive={turn.shieldActive ?? shieldActive}
                     secretTypes={turn.secretTypes}
+                    highlightMode="rehydrated"
+                    vaultMap={turn.vaultMap}
                   />
 
                   <MessageBubble
@@ -127,6 +129,8 @@ export default function ChatWindow({
                     isInspecting={false}
                     loading={turn.llm.loading}
                     shieldActive={turn.shieldActive ?? shieldActive}
+                    highlightMode="rehydrated"
+                    vaultMap={turn.vaultMap}
                   />
                 </div>
               ))
@@ -173,6 +177,7 @@ export default function ChatWindow({
                     originalText={turn.user.masked || "—"}
                     isInspecting={false}
                     shieldActive={turn.shieldActive ?? shieldActive}
+                    highlightMode="placeholders"
                   />
 
                   <MessageBubble
@@ -182,6 +187,7 @@ export default function ChatWindow({
                     isInspecting={false}
                     loading={turn.llm.loading}
                     shieldActive={turn.shieldActive ?? shieldActive}
+                    highlightMode="placeholders"
                   />
                 </div>
               ))}

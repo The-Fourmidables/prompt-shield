@@ -12,6 +12,8 @@ interface MessageBubbleProps {
   shieldActive: boolean;
   isInspecting: boolean;
   secretTypes?: string[];   // ← NEW: shown as badges on user messages
+  highlightMode?: "none" | "placeholders" | "rehydrated";
+  vaultMap?: Record<string, string>;
   onClick?: () => void;
 }
 
@@ -63,6 +65,135 @@ const CHIP_COLORS: Record<string, { bg: string; text: string }> = {
 
 const DEFAULT_CHIP = { bg: "#F1EFE8", text: "#5F5E5A" };
 
+type MatchType = "url" | "placeholder" | "rehydrated";
+type Match = { start: number; end: number; type: MatchType; href?: string };
+
+const HIGHLIGHT_BLUE = "#2563EB";
+const URL_RE = /https?:\/\/[^\s<>()]+/gi;
+const PLACEHOLDER_RE = /<[^>\s]{1,80}>/g;
+
+function getMatches(text: string, matchType: MatchType, items: string[]): Match[] {
+  const lower = text.toLowerCase();
+  const matches: Match[] = [];
+
+  for (const raw of items) {
+    const token = raw.trim();
+    if (!token) continue;
+    const tokenLower = token.toLowerCase();
+
+    let from = 0;
+    while (from < lower.length) {
+      const at = lower.indexOf(tokenLower, from);
+      if (at === -1) break;
+      matches.push({ start: at, end: at + token.length, type: matchType });
+      from = at + token.length;
+    }
+  }
+
+  return matches;
+}
+
+function buildRichText({
+  text,
+  highlightMode,
+  vaultMap,
+}: {
+  text: string;
+  highlightMode: "none" | "placeholders" | "rehydrated";
+  vaultMap?: Record<string, string>;
+}): React.ReactNode {
+  const matches: Match[] = [];
+
+  const urlMatches: Match[] = [];
+  URL_RE.lastIndex = 0;
+  for (let m = URL_RE.exec(text); m; m = URL_RE.exec(text)) {
+    urlMatches.push({ start: m.index, end: m.index + m[0].length, type: "url", href: m[0] });
+  }
+  matches.push(...urlMatches);
+
+  if (highlightMode === "placeholders") {
+    PLACEHOLDER_RE.lastIndex = 0;
+    for (let m = PLACEHOLDER_RE.exec(text); m; m = PLACEHOLDER_RE.exec(text)) {
+      matches.push({ start: m.index, end: m.index + m[0].length, type: "placeholder" });
+    }
+  }
+
+  if (highlightMode === "rehydrated" && vaultMap) {
+    const tokens = Array.from(
+      new Set(Object.values(vaultMap).map((v) => (typeof v === "string" ? v : ""))),
+    )
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 2)
+      .sort((a, b) => b.length - a.length);
+    matches.push(...getMatches(text, "rehydrated", tokens));
+  }
+
+  if (matches.length === 0) return text;
+
+  const typePriority: Record<MatchType, number> = {
+    url: 0,
+    placeholder: 1,
+    rehydrated: 2,
+  };
+
+  matches.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    const pa = typePriority[a.type];
+    const pb = typePriority[b.type];
+    if (pa !== pb) return pa - pb;
+    return b.end - a.end;
+  });
+
+  const picked: Match[] = [];
+  let cursor = 0;
+  for (const m of matches) {
+    if (m.start < cursor) continue;
+    picked.push(m);
+    cursor = m.end;
+  }
+
+  const nodes: React.ReactNode[] = [];
+  let pos = 0;
+
+  picked.forEach((m, i) => {
+    if (m.start > pos) nodes.push(text.slice(pos, m.start));
+
+    const segment = text.slice(m.start, m.end);
+
+    if (m.type === "url" && m.href) {
+      nodes.push(
+        <a
+          key={`m-${i}`}
+          href={m.href}
+          target="_blank"
+          rel="noreferrer noopener"
+          style={{ color: HIGHLIGHT_BLUE, textDecoration: "underline" }}
+        >
+          {segment}
+        </a>,
+      );
+    } else if (m.type === "placeholder") {
+      nodes.push(
+        <span key={`m-${i}`} style={{ color: HIGHLIGHT_BLUE, fontWeight: 600 }}>
+          {segment}
+        </span>,
+      );
+    } else {
+      nodes.push(
+        <span key={`m-${i}`} style={{ color: HIGHLIGHT_BLUE }}>
+          {segment}
+        </span>,
+      );
+    }
+
+    pos = m.end;
+  });
+
+  if (pos < text.length) nodes.push(text.slice(pos));
+
+  return nodes;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function MessageBubble({
@@ -74,6 +205,8 @@ export default function MessageBubble({
   shieldActive,
   isInspecting,
   secretTypes,
+  highlightMode = "none",
+  vaultMap,
   onClick,
 }: MessageBubbleProps) {
   const colors    = getComputedTheme(theme, shieldActive);
@@ -249,6 +382,8 @@ export default function MessageBubble({
             </div>
           ) : (
             displayText
+              ? buildRichText({ text: displayText, highlightMode, vaultMap })
+              : null
           )}
         </div>
 
