@@ -1,6 +1,7 @@
 import React from "react";
 import { getComputedTheme } from "../../theme/theme";
 import type { ThemeMode } from "../../theme/theme";
+import LinkVisualizer from "./LinkVisualizer";
 
 interface MessageBubbleProps {
   theme: ThemeMode;
@@ -15,53 +16,31 @@ interface MessageBubbleProps {
   onClick?: () => void;
 }
 
-// ── Chip colour map (same palette as ChatInput) ───────────────────────────────
-
-const CHIP_COLORS: Record<string, { bg: string; text: string }> = {
-  "OpenAI key":        { bg: "#FCEBEB", text: "#A32D2D" },
-  "Anthropic key":     { bg: "#FCEBEB", text: "#A32D2D" },
-  "OpenRouter key":    { bg: "#FCEBEB", text: "#A32D2D" },
-  "Stripe key":        { bg: "#FCEBEB", text: "#A32D2D" },
-  "Google API key":    { bg: "#FCEBEB", text: "#A32D2D" },
-  "AWS access key":    { bg: "#FAEEDA", text: "#854F0B" },
-  "AWS secret key":    { bg: "#FAEEDA", text: "#854F0B" },
-  "GitHub token":      { bg: "#EAF3DE", text: "#3B6D11" },
-  "Slack token":       { bg: "#EAF3DE", text: "#3B6D11" },
-  "SendGrid key":      { bg: "#FAEEDA", text: "#854F0B" },
-  "HuggingFace token": { bg: "#EAF3DE", text: "#3B6D11" },
-  "Firebase key":      { bg: "#FAEEDA", text: "#854F0B" },
-  "Azure key":         { bg: "#FAEEDA", text: "#854F0B" },
-  "JWT token":         { bg: "#EEEDFE", text: "#3C3489" },
-  "Postgres URI":      { bg: "#FAEEDA", text: "#854F0B" },
-  "MySQL URI":         { bg: "#FAEEDA", text: "#854F0B" },
-  "MongoDB URI":       { bg: "#FAEEDA", text: "#854F0B" },
-  "Redis URI":         { bg: "#FAEEDA", text: "#854F0B" },
-  "MSSQL URI":         { bg: "#FAEEDA", text: "#854F0B" },
-  "DB password":       { bg: "#FCEBEB", text: "#A32D2D" },
-  "Internal IP":       { bg: "#E6F1FB", text: "#0C447C" },
-  "Internal URL":      { bg: "#E6F1FB", text: "#0C447C" },
-  "Localhost URL":     { bg: "#E6F1FB", text: "#0C447C" },
-  "S3 URL":            { bg: "#FAEEDA", text: "#854F0B" },
-  "Password":          { bg: "#FCEBEB", text: "#A32D2D" },
-  "Env secret":        { bg: "#EAF3DE", text: "#3B6D11" },
-  "API key":           { bg: "#FCEBEB", text: "#A32D2D" },
-  "Secret key":        { bg: "#FCEBEB", text: "#A32D2D" },
-  "Auth token":        { bg: "#EEEDFE", text: "#3C3489" },
-  "Private key":       { bg: "#FCEBEB", text: "#A32D2D" },
-  "Private key block": { bg: "#FCEBEB", text: "#A32D2D" },
-  "Certificate":       { bg: "#FAEEDA", text: "#854F0B" },
-  "Email":             { bg: "#E1F5EE", text: "#0F6E56" },
-  "Phone":             { bg: "#E1F5EE", text: "#0F6E56" },
-  "Aadhaar":           { bg: "#E6F1FB", text: "#0C447C" },
-  "PAN card":          { bg: "#E6F1FB", text: "#0C447C" },
-  "Credit card":       { bg: "#FCEBEB", text: "#A32D2D" },
-  "SSN":               { bg: "#FCEBEB", text: "#A32D2D" },
-  "UPI ID":            { bg: "#EAF3DE", text: "#3B6D11" },
-  "Bank account":      { bg: "#FAEEDA", text: "#854F0B" },
-  "IFSC code":         { bg: "#E6F1FB", text: "#0C447C" },
+// ── Label to Palette mapping ──
+const getChipPalette = (label: string, palettes: any) => {
+  const l = label.toLowerCase();
+  
+  if (l.includes("key") || l.includes("password") || l.includes("credit card") || l.includes("ssn") || l.includes("pass")) {
+    return palettes.danger;
+  }
+  if (l.includes("uri") || l.includes("connection") || l.includes("aws") || l.includes("certificate") || l.includes("account") || l.includes("s3")) {
+    return palettes.warning;
+  }
+  if (l.includes("token") || l.includes("secret") || l.includes("upi")) {
+    return palettes.success;
+  }
+  if (l.includes("jwt") || l.includes("auth")) {
+    return palettes.purple;
+  }
+  if (l.includes("ip") || l.includes("url") || l.includes("host") || l.includes("aadhaar") || l.includes("pan") || l.includes("ifsc") || l.includes("code")) {
+    return palettes.blue;
+  }
+  if (l.includes("email") || l.includes("phone")) {
+    return palettes.teal;
+  }
+  
+  return palettes.neutral;
 };
-
-const DEFAULT_CHIP = { bg: "#F1EFE8", text: "#5F5E5A" };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -133,7 +112,7 @@ export default function MessageBubble({
           }}
         >
           {secretTypes!.map((label) => {
-            const c = CHIP_COLORS[label] ?? DEFAULT_CHIP;
+            const c = getChipPalette(label, colors.chips);
             return (
               <span
                 key={label}
@@ -248,7 +227,7 @@ export default function MessageBubble({
               <span style={{ ...dotStyle, animationDelay: "0.4s" }} />
             </div>
           ) : (
-            displayText
+            <LinkVisualizer text={displayText!} color={colors.info} />
           )}
         </div>
 

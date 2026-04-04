@@ -68,37 +68,31 @@ function clientPreviewMask(text: string): PreviewResult {
   return { maskedText: masked, detectedLabels };
 }
 
-// ── Colour map for secret type chips ─────────────────────────────────────────
-
-const CHIP_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  "OpenAI key":        { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
-  "Anthropic key":     { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
-  "OpenRouter key":    { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
-  "Stripe key":        { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
-  "Google API key":    { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
-  "AWS access key":    { bg: "#FAEEDA", text: "#854F0B", dot: "#BA7517" },
-  "GitHub token":      { bg: "#EAF3DE", text: "#3B6D11", dot: "#639922" },
-  "Slack token":       { bg: "#EAF3DE", text: "#3B6D11", dot: "#639922" },
-  "SendGrid key":      { bg: "#FAEEDA", text: "#854F0B", dot: "#BA7517" },
-  "HuggingFace token": { bg: "#EAF3DE", text: "#3B6D11", dot: "#639922" },
-  "JWT token":         { bg: "#EEEDFE", text: "#3C3489", dot: "#7F77DD" },
-  "Postgres URI":      { bg: "#FAEEDA", text: "#854F0B", dot: "#BA7517" },
-  "MySQL URI":         { bg: "#FAEEDA", text: "#854F0B", dot: "#BA7517" },
-  "MongoDB URI":       { bg: "#FAEEDA", text: "#854F0B", dot: "#BA7517" },
-  "Redis URI":         { bg: "#FAEEDA", text: "#854F0B", dot: "#BA7517" },
-  "Internal IP":       { bg: "#E6F1FB", text: "#0C447C", dot: "#378ADD" },
-  "Internal URL":      { bg: "#E6F1FB", text: "#0C447C", dot: "#378ADD" },
-  "Password":          { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
-  "Env secret":        { bg: "#EAF3DE", text: "#3B6D11", dot: "#639922" },
-  "Email":             { bg: "#E1F5EE", text: "#0F6E56", dot: "#1D9E75" },
-  "Private key":       { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
+// ── Label to Palette mapping ──
+const getChipPalette = (label: string, palettes: any) => {
+  const l = label.toLowerCase();
+  
+  if (l.includes("key") || l.includes("password") || l.includes("credit card") || l.includes("ssn") || l.includes("pass")) {
+    return palettes.danger;
+  }
+  if (l.includes("uri") || l.includes("connection") || l.includes("aws") || l.includes("certificate") || l.includes("account") || l.includes("s3")) {
+    return palettes.warning;
+  }
+  if (l.includes("token") || l.includes("secret") || l.includes("upi")) {
+    return palettes.success;
+  }
+  if (l.includes("jwt") || l.includes("auth")) {
+    return palettes.purple;
+  }
+  if (l.includes("ip") || l.includes("url") || l.includes("host") || l.includes("aadhaar") || l.includes("pan") || l.includes("ifsc") || l.includes("code")) {
+    return palettes.blue;
+  }
+  if (l.includes("email") || l.includes("phone")) {
+    return palettes.teal;
+  }
+  
+  return palettes.neutral;
 };
-
-const DEFAULT_CHIP = { bg: "#F1EFE8", text: "#5F5E5A", dot: "#888780" };
-
-function getChipColor(label: string) {
-  return CHIP_COLORS[label] ?? DEFAULT_CHIP;
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -167,7 +161,7 @@ export default function ChatInput({
           </span>
 
           {previewResult.detectedLabels.map((label) => {
-            const c = getChipColor(label);
+            const c = getChipPalette(label, colors.chips);
             return (
               <span
                 key={label}

@@ -14,8 +14,18 @@ export type ThemeColors = {
   chatUserBg?: string;
   chatUserBorder?: string;
   glow: string;
+  info: string;
   inspectionGradient: string;
   inspectionInsetGlow: string;
+  chips: {
+    danger:    { bg: string; text: string; dot: string };
+    warning:   { bg: string; text: string; dot: string };
+    success:   { bg: string; text: string; dot: string };
+    purple:    { bg: string; text: string; dot: string };
+    blue:      { bg: string; text: string; dot: string };
+    teal:      { bg: string; text: string; dot: string };
+    neutral:   { bg: string; text: string; dot: string };
+  };
 };
 
 export type ThemeMode = "dark" | "light";
@@ -32,6 +42,7 @@ export const theme: Record<ThemeMode, ThemeColors> = {
     accentHover: "#E7DFD2",
     accentText: "#000000",
     glow: "rgba(214,205,191,0.18)",
+    info: "#4D9FFF",
     danger: "#F04444",
     dangerHover: "#DC2626",
     dangerText: "#1A0505",
@@ -50,6 +61,15 @@ export const theme: Record<ThemeMode, ThemeColors> = {
 inspectionInsetGlow: `
   inset 0 0 40px rgba(214,205,191,0.15)
 `,
+    chips: {
+      danger:    { bg: "#2D1B1B", text: "#FCA5A5", dot: "#EF4444" },
+      warning:   { bg: "#2D261B", text: "#FCD34D", dot: "#F59E0B" },
+      success:   { bg: "#1D2D1B", text: "#86EFAC", dot: "#10B981" },
+      purple:    { bg: "#1E1B2D", text: "#C4B5FD", dot: "#8B5CF6" },
+      blue:      { bg: "#1B242D", text: "#93C5FD", dot: "#3B82F6" },
+      teal:      { bg: "#1B2D25", text: "#5EEAD4", dot: "#14B8A6" },
+      neutral:   { bg: "#262626", text: "#A3A3A3", dot: "#737373" },
+    },
   },
 
   light: {
@@ -63,6 +83,7 @@ inspectionInsetGlow: `
     accentHover: "#00995C",
     accentText: "#FFFFFF",
     glow: "rgba(0,179,107,0.35)",
+    info: "#0066CC",
     danger: "#DC2626",
     dangerHover: "#B91C1C",
     dangerText: "#FFFFFF",
@@ -81,6 +102,15 @@ inspectionInsetGlow: `
 inspectionInsetGlow: `
   inset 0 0 40px rgba(0,179,107,0.20)
 `,
+    chips: {
+      danger:    { bg: "#FCEBEB", text: "#A32D2D", dot: "#E24B4A" },
+      warning:   { bg: "#FAEEDA", text: "#854F0B", dot: "#BA7517" },
+      success:   { bg: "#EAF3DE", text: "#3B6D11", dot: "#639922" },
+      purple:    { bg: "#EEEDFE", text: "#3C3489", dot: "#7F77DD" },
+      blue:      { bg: "#E6F1FB", text: "#0C447C", dot: "#378ADD" },
+      teal:      { bg: "#E1F5EE", text: "#0F6E56", dot: "#1D9E75" },
+      neutral:   { bg: "#F1EFE8", text: "#5F5E5A", dot: "#888780" },
+    },
   },
 };
 
