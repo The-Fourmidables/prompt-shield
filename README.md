@@ -124,6 +124,7 @@ frontend/
 │── vite.config.ts
 ```
 
+
 ---
 
 ## ⚙️ Installation
