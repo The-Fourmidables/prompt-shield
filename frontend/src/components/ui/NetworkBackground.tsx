@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { theme as themeConfig } from "../../theme/theme";
+import { getTheme } from "../../theme/theme";
 
 const PII_DATA = [
   { raw: "john.doe@gmail.com", placeholder: "<EMAIL_1>" },
@@ -25,7 +25,7 @@ export default function NetworkBackground({
 }: {
   theme: "dark" | "light";
 }) {
-  const colors = themeConfig[theme];
+  const colors = getTheme(theme);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const shieldRef = useRef<HTMLDivElement>(null);

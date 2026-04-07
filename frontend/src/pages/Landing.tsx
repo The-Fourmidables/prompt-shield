@@ -1,13 +1,15 @@
 import { useEffect, useRef } from "react";
 import NetworkBackground from "../components/ui/NetworkBackground";
-import { theme } from "../theme/theme";
+import { getPalette, getTheme, PALETTES, type PaletteName } from "../theme/theme";
+import { Shield } from "lucide-react";
 
 interface LandingProps {
   startApp: () => void;
 }
 
 export default function Landing({ startApp }: LandingProps) {
-  const currentTheme = theme.dark;
+  const currentTheme = getTheme("dark");
+  const currentPalette = getPalette();
   const startRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -30,9 +32,27 @@ export default function Landing({ startApp }: LandingProps) {
     >
       <style>
         {`
-        @keyframes rotateDisk {
-          from { transform: rotate(0deg) scaleY(0.65); }
-          to { transform: rotate(360deg) scaleY(0.65); }
+        @keyframes psAuroraMove {
+          0% { transform: translate3d(-6%, -4%, 0) scale(1.05); opacity: 0.50; }
+          50% { transform: translate3d(4%, 3%, 0) scale(1.12); opacity: 0.72; }
+          100% { transform: translate3d(-6%, -4%, 0) scale(1.05); opacity: 0.50; }
+        }
+
+        @keyframes psLogoFloat {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-2px); }
+          100% { transform: translateY(0px); }
+        }
+
+        @keyframes psRingSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes psShimmer {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
 
         button:focus {
@@ -42,7 +62,25 @@ export default function Landing({ startApp }: LandingProps) {
         `}
       </style>
 
-      <NetworkBackground theme="dark" />
+      <div style={{ position: "absolute", inset: 0, opacity: 0.35 }}>
+        <NetworkBackground theme="dark" />
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          inset: "-20%",
+          pointerEvents: "none",
+          zIndex: 1,
+          filter: "blur(40px)",
+          animation: "psAuroraMove 12s ease-in-out infinite",
+          background: `
+            radial-gradient(60% 60% at 20% 20%, ${currentTheme.glow}, transparent 60%),
+            radial-gradient(45% 45% at 80% 35%, rgba(59,130,246,0.25), transparent 60%),
+            radial-gradient(55% 55% at 55% 85%, rgba(29,78,216,0.20), transparent 60%)
+          `,
+        }}
+      />
 
       <div
         style={{
@@ -50,117 +88,312 @@ export default function Landing({ startApp }: LandingProps) {
           zIndex: 2,
           height: "100%",
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          flexDirection: "column",
         }}
       >
         <div
           style={{
-            position: "relative",
-            width: "600px",
-            height: "600px",
+            height: "76px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 28px",
+            borderBottom: `1px solid ${currentTheme.border}`,
+            background: `linear-gradient(180deg, ${currentTheme.background} 0%, ${currentTheme.background}CC 100%)`,
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div
+              style={{
+                width: "44px",
+                height: "44px",
+                borderRadius: "12px",
+                background: `linear-gradient(180deg, ${currentTheme.surfaceAlt} 0%, ${currentTheme.surface} 100%)`,
+                border: `1px solid ${currentTheme.accent}66`,
+                boxShadow: `0 18px 56px ${currentTheme.glow}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+                animation: "psLogoFloat 2.6s ease-in-out infinite",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  inset: "-2px",
+                  borderRadius: "14px",
+                  background: `conic-gradient(from 180deg, transparent 0deg, ${currentTheme.accent}66 80deg, transparent 160deg, ${currentTheme.accent}44 240deg, transparent 360deg)`,
+                  filter: "blur(0px)",
+                  animation: "psRingSpin 4.8s linear infinite",
+                  opacity: 0.9,
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: "1px",
+                  borderRadius: "11px",
+                  background: `linear-gradient(180deg, ${currentTheme.surfaceAlt} 0%, ${currentTheme.surface} 100%)`,
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+                }}
+              />
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <Shield size={19} strokeWidth={2.4} color={currentTheme.accent} />
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "0.4px" }}>
+                Prompt Shield
+              </div>
+              <div style={{ fontSize: "12px", color: currentTheme.textSecondary }}>
+                Enterprise prompt redaction
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.6px", color: currentTheme.textSecondary }}>
+            v3.4.2
+          </div>
+        </div>
+
+        <div
+          style={{
+            flex: 1,
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            padding: "28px",
           }}
         >
-          {/* Plasma Disk */}
           <div
             style={{
-              position: "absolute",
-              width: "600px",
-              height: "600px",
-              borderRadius: "50%",
-              background: `
-                radial-gradient(circle at 40% 60%, ${currentTheme.glow}, transparent 60%),
-                radial-gradient(circle at 65% 40%, ${currentTheme.glow}, transparent 65%),
-                conic-gradient(
-                  from 0deg,
-                  transparent 0deg,
-                  ${currentTheme.glow} 80deg,
-                  transparent 160deg,
-                  ${currentTheme.glow} 240deg,
-                  transparent 320deg
-                )
-              `,
-              animation: "rotateDisk 14s linear infinite",
-              filter: "blur(60px)",
-              opacity: 0.85,
-            }}
-          />
-
-          {/* Event Horizon Core */}
-          <div
-            style={{
-              width: "300px",
-              height: "260px",
-              borderRadius: "50%",
-              transform: "scaleX(1.08)",
-              background: "#000",
-              boxShadow: `
-                inset 0 0 40px rgba(0,0,0,1),
-                inset 0 0 80px rgba(0,0,0,0.9),
-                0 0 40px ${currentTheme.glow}
-              `,
+              width: "100%",
+              maxWidth: "940px",
+              borderRadius: "24px",
+              border: `1px solid ${currentTheme.border}`,
+              background: `linear-gradient(180deg, ${currentTheme.surface} 0%, ${currentTheme.surfaceAlt} 180%)`,
+              boxShadow: `0 30px 120px rgba(0,0,0,0.45)`,
+              padding: "28px",
               position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "20px",
-              zIndex: 3,
             }}
           >
-            {/* Inner Plasma Rim */}
             <div
               style={{
                 position: "absolute",
-                width: "100%",
-                height: "100%",
-                borderRadius: "50%",
+                inset: "-1px",
+                borderRadius: "24px",
+                pointerEvents: "none",
+                opacity: 0.65,
                 background: `
-                  radial-gradient(circle at center,
-                    transparent 55%,
-                    ${currentTheme.glow} 65%,
-                    ${currentTheme.glow} 75%,
-                    transparent 85%
-                  )
+                  radial-gradient(60% 60% at 10% 0%, ${currentTheme.glow}, transparent 55%),
+                  radial-gradient(55% 55% at 90% 20%, rgba(59,130,246,0.18), transparent 60%),
+                  radial-gradient(65% 65% at 40% 110%, rgba(29,78,216,0.14), transparent 60%)
                 `,
-                filter: "blur(8px)",
-                opacity: 0.8,
+                filter: "blur(18px)",
               }}
             />
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div style={{ position: "relative", display: "flex", alignItems: "center", marginTop: "18px" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    width: "fit-content",
+                    padding: "5px 10px",
+                    borderRadius: "999px",
+                    border: `1px solid ${currentTheme.accent}66`,
+                    background: `${currentTheme.accent}12`,
+                    color: currentTheme.textPrimary,
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.3px",
+                  }}
+                >
+                  Secure-by-design masking
+                </div>
 
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "26px",
-                letterSpacing: "3px",
-                color: currentTheme.textPrimary,
-                textAlign: "center",
-                zIndex: 2,
-              }}
-            >
-              PROMPT SHIELD
-            </h1>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    transform: "translateX(-50%) translateY(10px)",
+                    fontSize: "26px",
+                    fontWeight: 950,
+                    letterSpacing: "3.4px",
+                    backgroundImage: `linear-gradient(90deg, ${currentTheme.accentHover}, ${currentTheme.accent}, rgba(226,232,240,0.85))`,
+                    backgroundSize: "200% 200%",
+                    animation: "psShimmer 5s ease-in-out infinite",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    pointerEvents: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  PROMPT SHIELD
+                </div>
+              </div>
 
-            <button
-              ref={startRef}
-              onClick={startApp}
-              style={{
-                padding: "10px 28px",
-                fontSize: "15px",
-                backgroundColor: currentTheme.accent,
-                color: currentTheme.accentText,
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontWeight: 600,
-                zIndex: 2,
-              }}
-            >
-              START
-            </button>
+              <div
+                style={{
+                  fontSize: "18px",
+                  lineHeight: "1.08",
+                  fontWeight: 800,
+                  letterSpacing: "-0.2px",
+                  marginTop: "18px",
+                }}
+              >
+                <span
+                  style={{
+                    backgroundImage: `linear-gradient(90deg, ${currentTheme.textPrimary}, rgba(226,232,240,0.82), ${currentTheme.textPrimary})`,
+                    backgroundSize: "200% 200%",
+                    animation: "psShimmer 7s ease-in-out infinite",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Protect secrets before they reach the model.
+                </span>
+              </div>
+
+              <div
+                style={{
+                  fontSize: "16px",
+                  lineHeight: "1.7",
+                  color: currentTheme.textSecondary,
+                  maxWidth: "680px",
+                }}
+              >
+                Prompt Shield detects and masks API keys, credentials, PII/PHI, internal URLs, and connection strings —
+                then safely rehydrates responses for a clean user experience.
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginTop: "12px",
+                }}
+              >
+                <button
+                  ref={startRef}
+                  onClick={startApp}
+                  style={{
+                    height: "46px",
+                    padding: "0 22px",
+                    borderRadius: "14px",
+                    border: `1px solid ${currentTheme.accent}88`,
+                    background: `linear-gradient(180deg, ${currentTheme.accent} 0%, ${currentTheme.accentHover} 100%)`,
+                    color: currentTheme.accentText,
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    letterSpacing: "0.2px",
+                    boxShadow: `0 16px 44px ${currentTheme.glow}`,
+                  }}
+                >
+                  Start
+                </button>
+
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "7px 12px",
+                    borderRadius: "999px",
+                    border: `1px solid ${currentTheme.border}`,
+                    background: `linear-gradient(180deg, ${currentTheme.surface} 0%, ${currentTheme.surfaceAlt} 160%)`,
+                    color: currentTheme.textSecondary,
+                    fontSize: "12px",
+                    fontWeight: 600,
+                  }}
+                >
+                  No data stored by default
+                </div>
+
+                <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "1.2px", color: currentTheme.textSecondary }}>
+                    THEME PRESETS
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+                    {(Object.entries(PALETTES) as [PaletteName, (typeof PALETTES)[PaletteName]][]).map(([id, p]) => {
+                      const isActive = id === currentPalette;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            try {
+                              window.localStorage.setItem("ps_palette", id);
+                            } catch {
+                              window.location.reload();
+                              return;
+                            }
+                            window.location.reload();
+                          }}
+                          style={{
+                            height: "34px",
+                            padding: "0 12px 0 10px",
+                            borderRadius: "999px",
+                            border: `1px solid ${isActive ? `${currentTheme.accent}AA` : currentTheme.border}`,
+                            background: `linear-gradient(180deg, ${currentTheme.surface} 0%, ${currentTheme.surfaceAlt} 160%)`,
+                            color: currentTheme.textPrimary,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            letterSpacing: "0.2px",
+                            boxShadow: isActive ? `0 18px 50px ${currentTheme.glow}` : "none",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "999px",
+                              background: p.dark.accent,
+                              boxShadow: `0 0 0 3px ${p.dark.glow}`,
+                            }}
+                          />
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ height: "22px" }} />
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "14px" }}>
+              {[
+                { title: "Masking Pipeline", desc: "Deterministic masking for secrets + PII/PHI before transmission." },
+                { title: "AI View", desc: "Inspect exactly what the model receives, with placeholders highlighted." },
+                { title: "Vault Rehydration", desc: "Restore outputs safely using local mappings — clean, readable replies." },
+              ].map((card) => (
+                <div
+                  key={card.title}
+                  style={{
+                    borderRadius: "18px",
+                    border: `1px solid ${currentTheme.border}`,
+                    background: `linear-gradient(180deg, ${currentTheme.surface} 0%, ${currentTheme.surfaceAlt} 160%)`,
+                    padding: "16px",
+                    boxShadow: `0 16px 50px rgba(0,0,0,0.25)`,
+                  }}
+                >
+                  <div style={{ fontSize: "13px", fontWeight: 800, letterSpacing: "0.2px" }}>
+                    {card.title}
+                  </div>
+                  <div style={{ marginTop: "8px", fontSize: "13px", lineHeight: "1.65", color: currentTheme.textSecondary }}>
+                    {card.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

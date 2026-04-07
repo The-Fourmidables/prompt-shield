@@ -1,4 +1,4 @@
-import { theme as themeConfig } from "../theme/theme";
+import { getTheme } from "../theme/theme";
 import { sendMessage } from "../services/api";
 import { useState, useEffect } from "react";
 import type { ChatTurn } from "../types";
@@ -14,11 +14,14 @@ type RightPanelItem = "pipeline" | "vault";
 export default function Main({
   theme,
   setTheme,
+  turns,
+  setTurns,
 }: {
   theme: "dark" | "light";
   setTheme: React.Dispatch<React.SetStateAction<"dark" | "light">>;
+  turns: ChatTurn[];
+  setTurns: React.Dispatch<React.SetStateAction<ChatTurn[]>>;
 }) {
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [persistentVault, setPersistentVault] = useState<Record<string, string>>(() => {
     const raw = localStorage.getItem("ps_vault");
     if (!raw) return {};
@@ -41,7 +44,7 @@ export default function Main({
   const [inspectionMode, setInspectionMode]       = useState(false);
   const [rightPanelStack, setRightPanelStack]     = useState<RightPanelItem[]>([]);
 
-  const baseColors = themeConfig[theme];
+  const baseColors = getTheme(theme);
   let colors = baseColors;
 
   if (!shieldActive) {
@@ -74,6 +77,7 @@ export default function Main({
   const handleSend = async (text: string, attachments?: File[]) => {
     const file   = attachments?.[0];
     const turnId = crypto.randomUUID();
+    const MAX_CONTEXT_TURNS = 8;
 
     const newTurn: ChatTurn = {
       id:          turnId,
@@ -85,7 +89,8 @@ export default function Main({
     setTurns((prev) => [...prev, newTurn]);
 
     try {
-      const history = [...turns, newTurn].flatMap((turn) => [
+      const contextTurns = [...turns, newTurn].slice(-MAX_CONTEXT_TURNS);
+      const history = contextTurns.flatMap((turn) => [
         { role: "user",      content: turn.user.masked ?? turn.user.original },
         ...(turn.llm.masked ? [{ role: "assistant", content: turn.llm.masked }] : []),
       ]);
@@ -97,8 +102,6 @@ export default function Main({
         persistentVault,
         file,
       );
-
-      await new Promise((r) => setTimeout(r, 300));
 
       setTurns((prev) => {
         const updatedTurns = prev.map((turn) =>
@@ -168,7 +171,7 @@ export default function Main({
         setShieldActive={setShieldActive}
       />
 
-      <div style={{ flex: 1, display: "flex", padding: "20px", gap: "20px", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", padding: "12px", gap: "16px", overflow: "hidden" }}>
         <Sidebar
           theme={theme}
           setTheme={setTheme}
@@ -182,11 +185,6 @@ export default function Main({
         <div
           style={{
             flex:            rightPanelStack.length === 0 ? 1 : 2,
-            backgroundColor: colors.surface,
-            border:          `1px solid ${colors.border}`,
-            borderRadius:    "16px",
-            boxShadow:       `0 0 40px ${colors.glow}`,
-            padding:         "20px",
             display:         "flex",
             flexDirection:   "column",
             justifyContent:  "space-between",

@@ -203,7 +203,6 @@ async def chat_text(request: ChatRequest):
             return
 
         yield f"data: {json.dumps({'stage': 'DETECTING'})}\n\n"
-        await asyncio.sleep(0.05)
 
         # ── Shield OFF ──────────────────────────────────────────────────────
         if not request.shield_active:

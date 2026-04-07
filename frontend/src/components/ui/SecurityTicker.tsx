@@ -1,4 +1,4 @@
-import { theme as themeConfig } from "../../theme/theme";
+import { getTheme } from "../../theme/theme";
 
 interface Props {
   themeMode: "dark" | "light";
@@ -11,7 +11,7 @@ export default function SecurityTicker({
   totalValue,
   shieldActive,
 }: Props) {
-  const colors = themeConfig[themeMode];
+  const colors = getTheme(themeMode);
 
   return (
     <div

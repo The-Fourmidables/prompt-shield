@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import ImpactDashboard from "../components/ui/ImpactDashboard";
 import SecurityTicker from "../components/ui/SecurityTicker";
-import { theme as themeConfig } from "../theme/theme";
+import { getTheme } from "../theme/theme";
 
 function parseVault(raw: string | null): Record<string, string> {
   if (!raw) return {};
@@ -65,7 +65,7 @@ export default function Dashboard({
   setTheme: React.Dispatch<React.SetStateAction<"dark" | "light">>;
 }) {
   const navigate = useNavigate();
-  const colors = themeConfig[theme];
+  const colors = getTheme(theme);
 
   const [shieldActive, setShieldActive] = useState<boolean>(() => {
     const saved = localStorage.getItem("ps_shield");
@@ -111,14 +111,15 @@ export default function Dashboard({
       <div style={{ flex: 1, display: "flex", padding: "20px", gap: "20px", overflow: "hidden" }}>
         <div
           style={{
-            width: "260px",
-            backgroundColor: colors.surface,
+            width: "280px",
+            background: `linear-gradient(180deg, ${colors.surface} 0%, ${colors.surfaceAlt} 160%)`,
             border: `1px solid ${colors.border}`,
-            borderRadius: "18px",
+            borderRadius: "20px",
             padding: "20px",
             display: "flex",
             flexDirection: "column",
             gap: "14px",
+            boxShadow: `0 18px 60px ${colors.glow}`,
           }}
         >
           <button
@@ -126,13 +127,13 @@ export default function Dashboard({
             style={{
               width: "100%",
               height: "52px",
-              borderRadius: "14px",
+              borderRadius: "16px",
               border: `1px solid ${colors.border}`,
-              backgroundColor: colors.surfaceAlt,
+              background: `linear-gradient(180deg, ${colors.surfaceAlt} 0%, ${colors.surface} 100%)`,
               color: colors.textPrimary,
               cursor: "pointer",
               fontWeight: 700,
-              letterSpacing: "0.4px",
+              letterSpacing: "0.3px",
             }}
           >
             Back to Chat
@@ -143,9 +144,9 @@ export default function Dashboard({
             style={{
               width: "100%",
               height: "52px",
-              borderRadius: "14px",
+              borderRadius: "16px",
               border: `1px solid ${colors.border}`,
-              backgroundColor: colors.surface,
+              background: `linear-gradient(180deg, ${colors.surface} 0%, ${colors.surface} 100%)`,
               color: colors.textPrimary,
               cursor: "pointer",
               fontWeight: 600,
@@ -159,9 +160,9 @@ export default function Dashboard({
             style={{
               width: "100%",
               height: "52px",
-              borderRadius: "14px",
+              borderRadius: "16px",
               border: `1px solid ${colors.border}`,
-              backgroundColor: colors.surface,
+              background: `linear-gradient(180deg, ${colors.surface} 0%, ${colors.surface} 100%)`,
               color: colors.textPrimary,
               cursor: "pointer",
               fontWeight: 600,
@@ -176,11 +177,11 @@ export default function Dashboard({
         <div
           style={{
             flex: 1,
-            backgroundColor: colors.surface,
+            background: `linear-gradient(180deg, ${colors.surface} 0%, ${colors.surfaceAlt} 160%)`,
             border: `1px solid ${colors.border}`,
-            borderRadius: "16px",
-            boxShadow: `0 0 40px ${colors.glow}`,
-            padding: "20px",
+            borderRadius: "20px",
+            boxShadow: `0 24px 80px rgba(0,0,0,0.35)`,
+            padding: "22px",
             overflow: "auto",
             display: "flex",
             flexDirection: "column",

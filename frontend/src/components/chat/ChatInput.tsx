@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { theme as themeConfig } from "../../theme/theme";
+import { getTheme } from "../../theme/theme";
 
 // ── Client-side detection rules (mirrors code_masker.py + masker.py patterns)
 // Used only for the LIVE PREVIEW — the real masking always happens on the backend.
@@ -113,7 +113,7 @@ export default function ChatInput({
   onSend: (text: string, attachments?: File[]) => void;
   onClear: () => void;
 }) {
-  const colors = themeConfig[theme];
+  const colors = getTheme(theme);
 
   const [message, setMessage]             = useState("");
   const [file, setFile]                   = useState<File | null>(null);
