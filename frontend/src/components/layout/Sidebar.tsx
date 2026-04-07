@@ -80,9 +80,11 @@ export default function Sidebar({
   const buttonStyle = (active?: boolean): React.CSSProperties => ({
     width: "100%",
     height: "60px",
-    borderRadius: "14px",
+    borderRadius: "16px",
     border: `1px solid ${active ? colors.accent : colors.border}`,
-    backgroundColor: active ? colors.surfaceAlt : colors.surface,
+    background: active
+      ? `linear-gradient(180deg, ${colors.surfaceAlt} 0%, ${colors.surface} 100%)`
+      : `linear-gradient(180deg, ${colors.surface} 0%, ${colors.surface} 100%)`,
     color: active ? colors.accent : colors.textPrimary,
     cursor: "pointer",
     display: "flex",
@@ -91,7 +93,7 @@ export default function Sidebar({
     padding: collapsed ? "0" : "0 16px",
     gap: "12px",
     transition: "all 0.2s ease",
-    boxShadow: active ? `0 0 12px ${colors.accent}40` : "none",
+    boxShadow: active ? `0 14px 40px ${colors.glow}` : "none",
   });
 
   const iconStyle: React.CSSProperties = {
@@ -106,14 +108,15 @@ export default function Sidebar({
     <div
       style={{
         width: collapsed ? "80px" : "220px",
-        backgroundColor: colors.surface,
+        background: `linear-gradient(180deg, ${colors.surface} 0%, ${colors.surfaceAlt} 140%)`,
         border: `1px solid ${colors.border}`,
-        borderRadius: "18px",
+        borderRadius: "20px",
         padding: "20px",
         display: "flex",
         flexDirection: "column",
         gap: "20px",
         transition: "width 0.25s ease",
+        boxShadow: `0 18px 60px ${colors.glow}`,
       }}
     >
       {/* Collapse */}

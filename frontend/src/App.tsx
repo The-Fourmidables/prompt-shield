@@ -9,6 +9,7 @@ import {
 import Landing from "./pages/Landing";
 import Main from "./pages/Main";
 import Dashboard from "./pages/Dashboard";
+import type { ChatTurn } from "./types";
 
 function AppWrapper() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ function AppWrapper() {
   });
 
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
 
   useEffect(() => {
     localStorage.setItem("ps_theme", theme);
@@ -46,7 +48,14 @@ function AppWrapper() {
         <Route path="/" element={<Landing startApp={startApp} />} />
         <Route
           path="/app"
-          element={<Main theme={theme} setTheme={setTheme} />}
+          element={
+            <Main
+              theme={theme}
+              setTheme={setTheme}
+              turns={turns}
+              setTurns={setTurns}
+            />
+          }
         />
         <Route
           path="/dashboard"

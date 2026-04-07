@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { theme as themeConfig } from "../../theme/theme";
+import { getTheme } from "../../theme/theme";
 
 interface Props {
   themeMode: "dark" | "light";
@@ -53,7 +53,7 @@ export default function ImpactDashboard({
   vaultMap,
   shieldActive,
 }: Props) {
-  const colors = themeConfig[themeMode];
+  const colors = getTheme(themeMode);
 
   const stats = useMemo(() => {
     if (!vaultMap) return { total: 0, count: 0, categories: { Financial: 0, Identity: 0, Secrets: 0, Contact: 0 } };

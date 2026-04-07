@@ -1,4 +1,4 @@
-import { theme as themeConfig } from "../../theme/theme";
+import { getTheme } from "../../theme/theme";
 import { Shield } from "lucide-react";
 
 export default function Header({
@@ -10,7 +10,7 @@ export default function Header({
   shieldActive: boolean;
   setShieldActive: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const colors = themeConfig[theme];
+  const colors = getTheme(theme);
 
   const activeColor = shieldActive ? colors.accent : colors.danger!;
   const glowColor = shieldActive ? colors.glow : `${colors.danger}40`;
@@ -18,13 +18,17 @@ export default function Header({
   return (
     <div
       style={{
-        height: "80px",
-        padding: "0 30px",
+        height: "76px",
+        padding: "0 28px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: colors.background,
+        background: `linear-gradient(180deg, ${colors.background} 0%, ${colors.background}CC 100%)`,
         borderBottom: `1px solid ${colors.border}`,
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        backdropFilter: "blur(10px)",
       }}
     >
       {/* LEFT SIDE */}
@@ -39,9 +43,9 @@ export default function Header({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: colors.surfaceAlt,
-            border: `1px solid ${activeColor}`,
-            boxShadow: `0 0 18px ${glowColor}`,
+            background: `linear-gradient(180deg, ${colors.surfaceAlt} 0%, ${colors.surface} 100%)`,
+            border: `1px solid ${activeColor}66`,
+            boxShadow: `0 10px 30px ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.08)`,
             transition: "all 0.3s ease",
           }}
         >
@@ -58,17 +62,17 @@ export default function Header({
             fontSize: "20px",
             fontWeight: 700,
             color: colors.textPrimary,
-            letterSpacing: "1px",
+            letterSpacing: "0.6px",
           }}
         >
-          PROMPT-SHIELD
+          Prompt Shield
         </div>
 
         {/* Toggle */}
         <div
           onClick={() => setShieldActive((prev) => !prev)}
           style={{
-            padding: "6px 14px",
+            padding: "7px 14px",
             borderRadius: "999px",
             fontSize: "12px",
             fontWeight: 600,
@@ -80,7 +84,8 @@ export default function Header({
               : `${colors.danger}22`,
 
             color: activeColor,
-            border: `1px solid ${activeColor}`,
+            border: `1px solid ${activeColor}80`,
+            boxShadow: shieldActive ? `0 8px 26px ${glowColor}` : "none",
 
             transition: "all 0.25s ease",
           }}
@@ -94,11 +99,11 @@ export default function Header({
         style={{
           fontSize: "13px",
           fontWeight: 600,
-          letterSpacing: "1px",
+          letterSpacing: "0.6px",
           color: colors.textSecondary,
         }}
       >
-        v2.0
+        v3.4.2
       </div>
     </div>
   );
