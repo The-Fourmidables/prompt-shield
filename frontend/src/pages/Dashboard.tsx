@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../components/layout/Header";
 import ImpactDashboard from "../components/ui/ImpactDashboard";
 import SecurityTicker from "../components/ui/SecurityTicker";
@@ -65,6 +65,7 @@ export default function Dashboard({
   setTheme: React.Dispatch<React.SetStateAction<"dark" | "light">>;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const colors = getTheme(theme);
 
   const [shieldActive, setShieldActive] = useState<boolean>(() => {
@@ -123,7 +124,10 @@ export default function Dashboard({
           }}
         >
           <button
-            onClick={() => navigate("/app")}
+            onClick={() => {
+              if (location.state?.fromApp) navigate(-1);
+              else navigate("/app");
+            }}
             style={{
               width: "100%",
               height: "52px",

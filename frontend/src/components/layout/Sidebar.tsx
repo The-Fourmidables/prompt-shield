@@ -194,21 +194,36 @@ export default function Sidebar({
         </button>
       </Tooltip>
 
-      <Tooltip label="Impact Dashboard">
-        <button
-          onClick={() => navigate("/dashboard")}
-          style={buttonStyle(false)}
-        >
-          <svg viewBox="0 0 24 24" style={iconStyle}>
-            <path d="M4 19V5" />
-            <path d="M8 17V9" />
-            <path d="M12 15V7" />
-            <path d="M16 17V11" />
-            <path d="M20 15V9" />
-          </svg>
-          {!collapsed && <span>Impact</span>}
-        </button>
-      </Tooltip>
+      {localStorage.getItem("ps_mode") === "enterprise" ? (
+        <Tooltip label="Command Center">
+          <button
+            onClick={() => navigate("/enterprise", { state: { fromApp: true } })}
+            style={buttonStyle(false)}
+          >
+            <svg viewBox="0 0 24 24" style={iconStyle}>
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+            </svg>
+            {!collapsed && <span>Command Center</span>}
+          </button>
+        </Tooltip>
+      ) : (
+        <Tooltip label="Impact Dashboard">
+          <button
+            onClick={() => navigate("/dashboard", { state: { fromApp: true } })}
+            style={buttonStyle(false)}
+          >
+            <svg viewBox="0 0 24 24" style={iconStyle}>
+              <path d="M4 19V5" />
+              <path d="M8 17V9" />
+              <path d="M12 15V7" />
+              <path d="M16 17V11" />
+              <path d="M20 15V9" />
+            </svg>
+            {!collapsed && <span>Impact</span>}
+          </button>
+        </Tooltip>
+      )}
 
       {/* Theme */}
       <Tooltip label="Appearance">

@@ -1,14 +1,16 @@
 import { getTheme } from "../../theme/theme";
-import { Shield } from "lucide-react";
+import { Shield, Lock } from "lucide-react";
 
 export default function Header({
   theme,
   shieldActive,
   setShieldActive,
+  enforceShield,
 }: {
   theme: "dark" | "light";
   shieldActive: boolean;
   setShieldActive: React.Dispatch<React.SetStateAction<boolean>>;
+  enforceShield?: boolean;
 }) {
   const colors = getTheme(theme);
 
@@ -70,14 +72,19 @@ export default function Header({
 
         {/* Toggle */}
         <div
-          onClick={() => setShieldActive((prev) => !prev)}
+          onClick={() => {
+            if (!enforceShield) setShieldActive((prev) => !prev);
+          }}
           style={{
             padding: "7px 14px",
             borderRadius: "999px",
             fontSize: "12px",
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: enforceShield ? "not-allowed" : "pointer",
             userSelect: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
 
             backgroundColor: shieldActive
               ? colors.surfaceAlt
@@ -86,11 +93,14 @@ export default function Header({
             color: activeColor,
             border: `1px solid ${activeColor}80`,
             boxShadow: shieldActive ? `0 8px 26px ${glowColor}` : "none",
+            opacity: enforceShield ? 0.8 : 1,
 
             transition: "all 0.25s ease",
           }}
+          title={enforceShield ? "Shield is enforced by Administrator" : "Click to toggle"}
         >
-          {shieldActive ? "SHIELD ACTIVE" : "SHIELD OFF"}
+          {enforceShield && <Lock size={12} />}
+          {shieldActive ? (enforceShield ? "SHIELD MANDATORY" : "SHIELD ACTIVE") : "SHIELD OFF"}
         </div>
       </div>
 
