@@ -30,6 +30,12 @@ function AppWrapper() {
 
   const startApp = (mode: "solo" | "enterprise") => {
     setIsTransitioning(true);
+
+    // Reset old chat data when launching a new session mode
+    setTurns([]);
+    localStorage.removeItem("ps_vault");
+    localStorage.removeItem("ps_turns");
+
     setTimeout(() => {
       navigate("/app");
       setIsTransitioning(false);

@@ -353,7 +353,7 @@ export default function Landing({ startApp }: LandingProps) {
                     boxShadow: `0 16px 44px ${currentTheme.glow}`,
                   }}
                 >
-                  {mode === "solo" ? "Launch Solo →" : "Launch Command Center →"}
+                  {mode === "solo" ? "Launch Solo →" : "Launch Enterprise →"}
                 </button>
 
                 <div
