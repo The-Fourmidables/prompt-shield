@@ -36,10 +36,22 @@ export default function Main({
   const MAX_VAULT_TURNS                     = 10;
   const [pipelineStage, setPipelineStage]   = useState<string>("IDLE");
 
+  const adminPolicyStr = localStorage.getItem("ps_admin_policy");
+  const adminPolicy = adminPolicyStr ? JSON.parse(adminPolicyStr) : { shieldEnforcement: "voluntary" };
+  const enforceShield = adminPolicy.shieldEnforcement === "mandatory";
+
   const [shieldActive, setShieldActive] = useState<boolean>(() => {
+    if (enforceShield) return true;
     const saved = localStorage.getItem("ps_shield");
     return saved === "false" ? false : true;
   });
+
+  // Force active if policy updates mid-session
+  useEffect(() => {
+    if (enforceShield && !shieldActive) {
+      setShieldActive(true);
+    }
+  }, [enforceShield, shieldActive]);
 
   const [inspectionMode, setInspectionMode]       = useState(false);
   const [rightPanelStack, setRightPanelStack]     = useState<RightPanelItem[]>([]);
@@ -169,6 +181,7 @@ export default function Main({
         theme={theme}
         shieldActive={shieldActive}
         setShieldActive={setShieldActive}
+        enforceShield={enforceShield}
       />
 
       <div style={{ flex: 1, display: "flex", padding: "12px", gap: "16px", overflow: "hidden" }}>

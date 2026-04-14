@@ -9,6 +9,7 @@ import {
 import Landing from "./pages/Landing";
 import Main from "./pages/Main";
 import Dashboard from "./pages/Dashboard";
+import EnterpriseDashboard from "./pages/EnterpriseDashboard";
 import type { ChatTurn } from "./types";
 
 function AppWrapper() {
@@ -27,13 +28,18 @@ function AppWrapper() {
     localStorage.setItem("ps_theme", theme);
   }, [theme]);
 
-  const startApp = () => {
+  const startApp = (mode: "solo" | "enterprise") => {
     setIsTransitioning(true);
+
+    // Reset old chat data when launching a new session mode
+    setTurns([]);
+    localStorage.removeItem("ps_vault");
+    localStorage.removeItem("ps_turns");
 
     setTimeout(() => {
       navigate("/app");
       setIsTransitioning(false);
-    }, 350); // animation duration
+    }, 350);
   };
 
   return (
@@ -60,6 +66,10 @@ function AppWrapper() {
         <Route
           path="/dashboard"
           element={<Dashboard theme={theme} setTheme={setTheme} />}
+        />
+        <Route
+          path="/enterprise"
+          element={<EnterpriseDashboard theme={theme} setTheme={setTheme} />}
         />
       </Routes>
     </div>

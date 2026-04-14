@@ -1,16 +1,22 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import NetworkBackground from "../components/ui/NetworkBackground";
 import { getPalette, getTheme, PALETTES, type PaletteName } from "../theme/theme";
 import { Shield } from "lucide-react";
 
+type AppMode = "solo" | "enterprise";
+
 interface LandingProps {
-  startApp: () => void;
+  startApp: (mode: AppMode) => void;
 }
 
 export default function Landing({ startApp }: LandingProps) {
   const currentTheme = getTheme("dark");
   const currentPalette = getPalette();
   const startRef = useRef<HTMLButtonElement>(null);
+  const [mode, setMode] = useState<AppMode>(() => {
+    const saved = localStorage.getItem("ps_mode");
+    return saved === "enterprise" ? "enterprise" : "solo";
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -274,16 +280,68 @@ export default function Landing({ startApp }: LandingProps) {
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: "10px",
+                  gap: "14px",
                   marginTop: "12px",
                 }}
               >
+                {/* ── Mode Toggle ── */}
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    borderRadius: "999px",
+                    border: `1px solid ${currentTheme.border}`,
+                    background: `linear-gradient(180deg, ${currentTheme.surface} 0%, ${currentTheme.surfaceAlt} 160%)`,
+                    padding: "4px",
+                    gap: "2px",
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.25)`,
+                  }}
+                >
+                  {(["solo", "enterprise"] as AppMode[]).map((m) => {
+                    const isActive = mode === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setMode(m);
+                          localStorage.setItem("ps_mode", m);
+                        }}
+                        style={{
+                          height: "36px",
+                          padding: "0 20px",
+                          borderRadius: "999px",
+                          border: "none",
+                          background: isActive
+                            ? `linear-gradient(135deg, ${currentTheme.accent}, ${currentTheme.accentHover})`
+                            : "transparent",
+                          color: isActive ? currentTheme.accentText : currentTheme.textSecondary,
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          fontSize: "13px",
+                          letterSpacing: "0.3px",
+                          transition: "all 0.25s ease",
+                          boxShadow: isActive ? `0 4px 16px ${currentTheme.glow}` : "none",
+                          display: "flex", alignItems: "center", gap: "6px",
+                        }}
+                      >
+                        {m === "solo" ? "👤 Solo" : "🏢 Enterprise"}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ fontSize: "11px", color: currentTheme.textSecondary, textAlign: "center", lineHeight: "1.5" }}>
+                  {mode === "solo"
+                    ? "Personal privacy mode — mask your own prompts"
+                    : "AI Governance Console — org-wide monitoring & compliance"}
+                </div>
+
                 <button
                   ref={startRef}
-                  onClick={startApp}
+                  onClick={() => startApp(mode)}
                   style={{
                     height: "46px",
-                    padding: "0 22px",
+                    padding: "0 32px",
                     borderRadius: "14px",
                     border: `1px solid ${currentTheme.accent}88`,
                     background: `linear-gradient(180deg, ${currentTheme.accent} 0%, ${currentTheme.accentHover} 100%)`,
@@ -291,10 +349,11 @@ export default function Landing({ startApp }: LandingProps) {
                     cursor: "pointer",
                     fontWeight: 700,
                     letterSpacing: "0.2px",
+                    fontSize: "15px",
                     boxShadow: `0 16px 44px ${currentTheme.glow}`,
                   }}
                 >
-                  Start
+                  {mode === "solo" ? "Launch Solo →" : "Launch Enterprise →"}
                 </button>
 
                 <div
