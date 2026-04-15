@@ -127,6 +127,22 @@ app.include_router(chat_router, prefix="/chat")
 
 # ── Text routes ───────────────────────────────────────────────────────────────
 
+@app.post("/analyze")
+def analyze_text(req: MaskOnlyRequest):
+    """Extension endpoint: Returns masked text and the vault map."""
+    masked_text, entity_map, session_id = dual_mask(req.text, req.session_id)
+    # Convert entity_map (original->info) to vault_map (placeholder->original)
+    from app.chat_adapter import convert_entity_map
+    vault_map = convert_entity_map(entity_map)
+    
+    return {
+        "masked_text":    masked_text,
+        "vault_map":      vault_map,
+        "entities_found": list(entity_map.values()),
+        "session_id":     session_id,
+    }
+
+
 @app.post("/mask", response_model=MaskOnlyResponse)
 def mask_text(req: MaskOnlyRequest):
     masked_text, entity_map, session_id = dual_mask(req.text, req.session_id)
@@ -261,6 +277,7 @@ async def mask_file(
         secret_types        = secret_types,
         session_id          = session_id,
     )
+
 
 
 @app.post("/extract-text")

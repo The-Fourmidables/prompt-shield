@@ -28,8 +28,9 @@ function AppWrapper() {
     localStorage.setItem("ps_theme", theme);
   }, [theme]);
 
-  const startApp = (mode: "solo" | "enterprise") => {
+  const startApp = (_mode: "solo" | "enterprise") => {
     setIsTransitioning(true);
+
 
     // Reset old chat data when launching a new session mode
     setTurns([]);

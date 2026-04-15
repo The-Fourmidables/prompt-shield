@@ -91,6 +91,7 @@ export default function Dashboard({
     return total;
   }, [vault]);
 
+
   return (
     <div
       style={{

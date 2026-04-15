@@ -57,6 +57,7 @@ export async function sendMessage(
       stage:        "COMPLETE",
       secret_types: json.secret_types ?? [],
     };
+
   }
 
   // ── STREAMING CHAT ───────────────────────────────────────────────────────

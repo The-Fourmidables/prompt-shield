@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  width: 350px;
+  background-color: #0f172a;
+  color: white;
+}
+
+
+#root {
+  padding: 1rem;
+}
+
+.shield-icon {
+  color: #3b82f6;
+}
+
+.status-online {
+  color: #22c55e;
+}
+
+.status-offline {
+  color: #ef4444;
+}
