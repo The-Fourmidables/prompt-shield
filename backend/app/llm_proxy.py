@@ -34,7 +34,7 @@ class LLMProxy:
     async def send_messages(
         self,
         messages: list,
-        model: str = "openai/gpt-3.5-turbo",
+        model: str = "openrouter/free",
     ) -> str:
         headers = self._headers()
         payload = {
@@ -55,7 +55,7 @@ class LLMProxy:
     async def send(
         self,
         prompt: str,
-        model: str = "openai/gpt-3.5-turbo",
+        model: str = "openrouter/free",
     ) -> str:
         """Async single-prompt wrapper — converts string to messages list."""
         return await self.send_messages(
@@ -67,7 +67,7 @@ class LLMProxy:
     def send_sync(
         self,
         masked_prompt: str,
-        model: str = "openai/gpt-3.5-turbo",
+        model: str = "openrouter/free",
     ) -> str:
         headers = self._headers()
         payload = {
